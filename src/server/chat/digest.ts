@@ -134,11 +134,7 @@ function detailBlock(f: Finding, view: MemoryView): string {
   return lines.join("\n");
 }
 
-function pickDetailed(
-  message: string,
-  latest: AuditDetail,
-  view: MemoryView
-): Finding[] {
+function pickDetailed(message: string, latest: AuditDetail): Finding[] {
   const all = [...latest.findings, ...latest.resolved];
   const byId = new Map(all.map((f) => [f.displayId, f]));
   const picked: Finding[] = [];
