@@ -1,0 +1,19 @@
+{
+  "name": "demo-deploy-agent",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+
+  "durable_objects": {
+    "bindings": [{ "name": "DEPLOY_AGENT", "class_name": "DeploymentAgent" }]
+  },
+
+  // Declarative Durable Object lifecycle (the current recommendation for new Workers).
+  "exports": {
+    "DeployAgent": { "type": "durable-object", "storage": "sqlite" }
+  },
+
+  "vars": {
+    "LOG_LEVEL": "info",
+    "WEBHOOK_SECRET": "demo-not-a-real-secret-4f9a1c"
+  }
+}
