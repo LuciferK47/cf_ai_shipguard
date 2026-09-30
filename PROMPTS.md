@@ -1500,3 +1500,19 @@ A: Yes, publish + deploy
 ~~~~
 
 **Result:** The plan was fixed to Free-plan limits (50 subrequests per Workflow instance, 10 ms CPU per step, 10k Workers AI neurons/day), with publish and deploy approved for the end of the build.
+
+---
+
+## Prompt 003
+
+- **Date:** 2026-09-30
+- **Tool / model:** Claude Code (VS Code extension), switched to Claude Sonnet 5.5 mid-session via `/model`
+- **Purpose:** Resume work after the model switch.
+
+**Exact prompt:**
+
+~~~~text
+continue where you left off
+~~~~
+
+**Result:** Implementation continued: watch feature, UI toggle, documentation (README, SECURITY, EVALUATION, ARCHITECTURE and RESEARCH updates), verification and publishing.

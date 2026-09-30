@@ -13,7 +13,7 @@ Paste `https://github.com/owner/repo` (or a `/tree/branch/folder` URL for one fo
 1. resolves the exact commit, lists the files, and selects the ones that matter for a Cloudflare deploy under a strict fetch and token budget;
 2. runs **19 deterministic rules** over `wrangler.jsonc/json/toml`, `package.json`, `tsconfig.json` and the source: Durable Object bindings versus `exports`/`migrations`, missing Workers AI bindings, classes that are configured but not exported, secrets committed in `vars`, environments that do not redefine bindings, and more, each with a documentation link and a stated confidence;
 3. asks **Llama 3.3 on Workers AI** to reason across the findings, prioritise them and propose extra issues, then **verifies every claim** against the files the model was actually shown (fabricated paths and lines are dropped);
-4. stores the report and answers questions such as *"What migration issue did you find earlier?"* or *"Did we fix F-001?"* from that stored history.
+4. stores the report and answers questions such as _"What migration issue did you find earlier?"_ or _"Did we fix F-001?"_ from that stored history.
 
 A finding looks like this:
 
@@ -22,14 +22,14 @@ A finding looks like this:
 
 ## Why this is an agent, not a wrapper
 
-| Property | How |
-|---|---|
-| **Identity** | One `ShipGuardAgent` Durable Object per workspace (`AIChatAgent`), addressed by a private UUID |
-| **Durable execution** | The audit is a Cloudflare **Workflow**; reload, close the tab or lose the connection and it carries on |
-| **Real tools** | GitHub reads, a config parser, a rule engine, a secret scanner, an evidence verifier: all code, none of it asked of the model |
-| **Memory** | Audits, findings, stable finding ids (`F-001`…), decisions and diffs in the agent's SQLite; chat answers are built from it |
-| **Honest progress** | The timeline shows stages finishing as they really do, with measured times; nothing is timer-driven |
-| **Failure handling** | Bad input, missing repos, rate limits, model failures and lost workflows each produce a visible, specific outcome |
+| Property              | How                                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Identity**          | One `ShipGuardAgent` Durable Object per workspace (`AIChatAgent`), addressed by a private UUID                                |
+| **Durable execution** | The audit is a Cloudflare **Workflow**; reload, close the tab or lose the connection and it carries on                        |
+| **Real tools**        | GitHub reads, a config parser, a rule engine, a secret scanner, an evidence verifier: all code, none of it asked of the model |
+| **Memory**            | Audits, findings, stable finding ids (`F-001`…), decisions and diffs in the agent's SQLite; chat answers are built from it    |
+| **Honest progress**   | The timeline shows stages finishing as they really do, with measured times; nothing is timer-driven                           |
+| **Failure handling**  | Bad input, missing repos, rate limits, model failures and lost workflows each produce a visible, specific outcome             |
 
 Deterministic code does everything code can do reliably (parsing, matching, scanning, verifying, diffing). The model is used for reasoning across findings, prioritisation, explanation and follow-up answers.
 
@@ -57,16 +57,16 @@ Workflow steps: `resolve-repository` → `list-files` → `classify-files` → `
 
 ## Cloudflare technologies
 
-| Product | Used for |
-|---|---|
-| **Workers AI** | `@cf/meta/llama-3.3-70b-instruct-fp8-fast`: JSON-mode analysis (not streamed) and streaming chat |
+| Product                                          | Used for                                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| **Workers AI**                                   | `@cf/meta/llama-3.3-70b-instruct-fp8-fast`: JSON-mode analysis (not streamed) and streaming chat |
 | **Agents SDK** (`agents`, `@cloudflare/ai-chat`) | The agent, persisted chat, resumable streams, WebSocket state sync, callable methods, scheduling |
-| **Durable Objects (SQLite)** | Agent identity, chat history, all project memory. Declared with the current `exports` field |
-| **Workflows** | The durable, checkpointed audit (`AgentWorkflow` for typed callbacks to the agent) |
-| **Workers KV** | Content-addressed cache of AI analyses (protects the free neuron allowance) |
-| **Workers Static Assets** | The React app, with a CSP from `_headers` |
-| **Observability** | Workers Logs (structured JSON) and Agents tracing (`observability.traces`) |
-| Optional: **AI Gateway** | Set `AI_GATEWAY_ID` to route model calls through a gateway for logs, caching and cost metrics |
+| **Durable Objects (SQLite)**                     | Agent identity, chat history, all project memory. Declared with the current `exports` field      |
+| **Workflows**                                    | The durable, checkpointed audit (`AgentWorkflow` for typed callbacks to the agent)               |
+| **Workers KV**                                   | Content-addressed cache of AI analyses (protects the free neuron allowance)                      |
+| **Workers Static Assets**                        | The React app, with a CSP from `_headers`                                                        |
+| **Observability**                                | Workers Logs (structured JSON) and Agents tracing (`observability.traces`)                       |
+| Optional: **AI Gateway**                         | Set `AI_GATEWAY_ID` to route model calls through a gateway for logs, caching and cost metrics    |
 
 Deliberately **not** used: Project Think/ThinkWorkflow (the docs report that this model ignores forced tool choice while streaming), Sandbox (paid plan), Browser tools (experimental), MCP, Code Mode. See [docs/RESEARCH.md](./docs/RESEARCH.md) for the dated research and the reasoning.
 
@@ -116,14 +116,14 @@ npx wrangler secret put GITHUB_TOKEN   # optional but recommended (see below)
 
 ### Configuration
 
-| Name | Kind | Required | Purpose |
-|---|---|---|---|
-| `AI` | binding | yes | Workers AI |
-| `ShipGuardAgent` | Durable Object | yes | The agent (`exports`, SQLite) |
-| `AUDIT_WORKFLOW` | Workflow | yes | The audit |
-| `ANALYSIS_CACHE` | KV | yes (auto-provisioned) | Analysis cache |
-| `GITHUB_TOKEN` | secret | no | A **fine-grained token with no permissions** (public read-only) raises GitHub's limit from 60 to 5,000 requests per hour. Without it a busy demo can hit GitHub's per-IP limit; the app then says so. |
-| `AI_GATEWAY_ID` | secret or var | no | Route model calls through AI Gateway |
+| Name             | Kind           | Required               | Purpose                                                                                                                                                                                               |
+| ---------------- | -------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AI`             | binding        | yes                    | Workers AI                                                                                                                                                                                            |
+| `ShipGuardAgent` | Durable Object | yes                    | The agent (`exports`, SQLite)                                                                                                                                                                         |
+| `AUDIT_WORKFLOW` | Workflow       | yes                    | The audit                                                                                                                                                                                             |
+| `ANALYSIS_CACHE` | KV             | yes (auto-provisioned) | Analysis cache                                                                                                                                                                                        |
+| `GITHUB_TOKEN`   | secret         | no                     | A **fine-grained token with no permissions** (public read-only) raises GitHub's limit from 60 to 5,000 requests per hour. Without it a busy demo can hit GitHub's per-IP limit; the app then says so. |
+| `AI_GATEWAY_ID`  | secret or var  | no                     | Route model calls through AI Gateway                                                                                                                                                                  |
 
 `GET /api/health` reports which optional features are configured, never their values.
 
