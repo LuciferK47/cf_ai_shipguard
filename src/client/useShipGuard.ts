@@ -41,10 +41,19 @@ export function useShipGuard(workspaceId: string) {
   });
   const chat = useAgentChat({ agent });
 
+  // Effects and callbacks call the agent through a ref rather than depending on
+  // its identity: if the SDK ever returned a new object per render, an effect
+  // that depended on it would re-run every render and cancel its own request.
+  const agentRef = useRef(agent);
+  useEffect(() => {
+    agentRef.current = agent;
+  });
+
   // After a (re)connect, ask the agent to reconcile any audit that lost its workflow.
   useEffect(() => {
-    if (connected) void agent.call("refresh", []).catch(() => undefined);
-  }, [connected, agent]);
+    if (connected)
+      void agentRef.current.call("refresh", []).catch(() => undefined);
+  }, [connected]);
 
   // Follow the running audit; otherwise the most recent one, unless the user picked one.
   const effectiveId =
@@ -59,7 +68,7 @@ export function useShipGuard(workspaceId: string) {
   useEffect(() => {
     if (!effectiveId || !connected) return;
     let cancelled = false;
-    agent
+    agentRef.current
       .call("getAudit", [effectiveId])
       .then((d) => {
         if (cancelled) return;
@@ -76,7 +85,7 @@ export function useShipGuard(workspaceId: string) {
     return () => {
       cancelled = true;
     };
-  }, [effectiveId, version, connected, reload, agent]);
+  }, [effectiveId, version, connected, reload]);
 
   // When a new audit starts, jump to it (unless the user is browsing history on purpose).
   useEffect(() => {
@@ -85,29 +94,28 @@ export function useShipGuard(workspaceId: string) {
     lastRunning.current = id;
   }, [state.running?.auditId]);
 
-  const startAudit = useCallback(
-    async (url: string): Promise<StartResult> => {
-      try {
-        const res = (await agent.call("startAudit", [url])) as StartResult;
-        if (res.ok) setSelectedId(undefined);
-        return res;
-      } catch {
-        return {
-          ok: false,
-          error: {
-            code: "WORKFLOW_FAILED",
-            message:
-              "Could not reach the agent. Check your connection and try again."
-          }
-        };
-      }
-    },
-    [agent]
-  );
+  const startAudit = useCallback(async (url: string): Promise<StartResult> => {
+    try {
+      const res = (await agentRef.current.call("startAudit", [
+        url
+      ])) as StartResult;
+      if (res.ok) setSelectedId(undefined);
+      return res;
+    } catch {
+      return {
+        ok: false,
+        error: {
+          code: "WORKFLOW_FAILED",
+          message:
+            "Could not reach the agent. Check your connection and try again."
+        }
+      };
+    }
+  }, []);
 
   const reaudit = useCallback(async (): Promise<StartResult> => {
     try {
-      return (await agent.call("reaudit", [])) as StartResult;
+      return (await agentRef.current.call("reaudit", [])) as StartResult;
     } catch {
       return {
         ok: false,
@@ -117,14 +125,14 @@ export function useShipGuard(workspaceId: string) {
         }
       };
     }
-  }, [agent]);
+  }, []);
 
   const setFindingStatus = useCallback(
     async (ref: string, status: FindingStatus, note?: string) => {
-      await agent.call("setFindingStatus", [ref, status, note]);
+      await agentRef.current.call("setFindingStatus", [ref, status, note]);
       setReload((n) => n + 1);
     },
-    [agent]
+    []
   );
 
   // `loaded` is undefined until the first load, so check it explicitly:

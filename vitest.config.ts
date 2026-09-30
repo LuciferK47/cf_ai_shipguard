@@ -1,5 +1,6 @@
 import { cloudflareTest } from "@cloudflare/vitest-plugin";
 import agents from "agents/vite";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import { createGithubMock } from "./test/helpers/github-mock.ts";
 
@@ -17,6 +18,16 @@ export default defineConfig({
           name: "unit",
           include: ["test/unit/**/*.test.ts"],
           environment: "node"
+        }
+      },
+      {
+        // React components, with the Agents SDK hooks replaced by fakes.
+        plugins: [react()],
+        test: {
+          name: "client",
+          include: ["test/client/**/*.test.tsx"],
+          environment: "jsdom",
+          setupFiles: ["test/client/setup.ts"]
         }
       },
       {

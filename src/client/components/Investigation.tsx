@@ -65,6 +65,11 @@ export function Investigation({
         {!connected && (
           <p className="callout callout-warn">Connecting to your workspace…</p>
         )}
+        {error && (
+          <p className="error-text" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     );
   }
