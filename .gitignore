@@ -142,3 +142,7 @@ dist
 .wrangler
 .dev.vars
 
+
+# Test fixtures deliberately contain files that would normally be ignored
+!test/fixtures/**/.dev.vars
+!test/fixtures/**/.env
