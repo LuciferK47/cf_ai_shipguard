@@ -27,7 +27,8 @@ const VARIANTS: Record<string, Record<string, string>> = {
   "ai-quota": { main: "broken-do-migration" },
   "ai-garbage": { main: "broken-do-migration" },
   "ai-flaky": { main: "broken-do-migration" },
-  "ai-hallucination": { main: "broken-do-migration" }
+  "ai-hallucination": { main: "broken-do-migration" },
+  "ai-chat-down": { main: "healthy-worker" }
 };
 
 const sha = (text: string) => createHash("sha1").update(text).digest("hex");

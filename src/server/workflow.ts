@@ -459,8 +459,11 @@ export class AuditWorkflow extends AgentWorkflow<
           rejectedAi: verified.rejected,
           persistMs: Date.now() - s
         });
-        // Return plain data: an RPC result carries a disposal marker that is not serialisable.
-        return { headline: summary.headline, status: summary.status };
+        // Return plain data: an RPC result carries a disposal marker that is not
+        // serialisable, and it should be released rather than left to the GC.
+        const result = { headline: summary.headline, status: summary.status };
+        summary[Symbol.dispose]?.();
+        return result;
       });
 
       await step.reportComplete({ auditId, headline: stored.headline });

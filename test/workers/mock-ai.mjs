@@ -8,6 +8,7 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 //   ai-garbage        -> answers with text that is not JSON (every time)
 //   ai-flaky          -> first answer is invalid, the repair attempt is valid
 //   ai-hallucination  -> one finding cites a file that does not exist, one is real
+//   ai-chat-down      -> analysis works, but chat (streaming) requests fail
 //   anything else     -> a valid, grounded analysis
 //
 // It also records every request so tests can assert what the model was sent.
@@ -51,7 +52,12 @@ export default class MockAi extends WorkerEntrypoint {
   async run(model, inputs) {
     requests.push({ model, inputs });
 
-    if (inputs?.stream) return sse("Here is what I found in memory.");
+    if (inputs?.stream) {
+      // Chat requests: the model is "down" for the ai-chat-down repository.
+      const system = inputs.messages?.find((m) => m.role === "system")?.content ?? "";
+      if (system.includes("test/ai-chat-down")) throw new Error("3040: capacity temporarily exceeded");
+      return sse("Here is what I found in memory.");
+    }
 
     const target = targetOf(inputs);
     const attempt = requests.filter(
