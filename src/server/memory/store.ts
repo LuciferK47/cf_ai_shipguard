@@ -14,7 +14,6 @@ import {
   type FindingStatus,
   type Manifest,
   type Severity,
-  type StageId,
   type StageState,
   type StageStatus,
   type Target
