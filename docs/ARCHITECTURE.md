@@ -82,7 +82,7 @@ Large records reach the client through a callable method (`getAudit`), not throu
 
 - **Steps are checkpointed.** Only step return values survive; each stage returns plain JSON under 1 MiB.
 - **Retries are scoped.** Network stages retry with backoff; validation and "not found" errors throw `NonRetryableError`.
-- **Free-plan budget.** The workflow plans for at most 33 subrequests (3 GitHub API calls, 20 file fetches, 2 AI calls, 2 KV calls and 6 agent RPC calls; see `src/server/limits.ts`), so a retry cannot exhaust the 50-request cap.
+- **Free-plan budget.** The workflow plans for at most 39 subrequests (3 GitHub API calls, 16 file fetches, up to 6 retries of transient fetch failures, 2 AI calls, 2 KV calls and about 10 agent RPC calls, plus one API call per sub-directory level; see `src/server/limits.ts`), so a retry cannot exhaust the 50-request cap.
 - **Per-file fetch failures are data, not exceptions.** They are recorded in the manifest, so retrying the step does not double the request count.
 - **Progress is honest.** `reportProgress` fires after each completed stage. It is non-durable and can repeat, so the agent handler is an idempotent upsert keyed by `(auditId, stage)`.
 - **Completion is durable.** The final write goes through `this.agent` RPC inside a SQL transaction and uses upserts, so a replayed step cannot create a duplicate report.
@@ -135,3 +135,12 @@ Full detail is in [SECURITY.md](./SECURITY.md). In short:
 6. **Stable finding IDs via fingerprints.** This is what makes "is F-003 still present?" answerable.
 7. **A demo repository ships inside this repo** (`examples/demo-worker`) with a broken tag and a fixed `main`, so the memory demo is reproducible.
 8. **Optional extras cut** to a scheduled re-audit and an optional AI Gateway toggle.
+
+## Implementation notes added after building it
+
+- **Steps.** `resolve-repository` → `list-files` (parse the tree) → `classify-files` → `fetch-config-files` → `fetch-source-files` → `scan-files-N` (batched) → `run-rules` → `ai-analysis` → `verify-findings` → `persist-report`. CPU-heavy work is split across steps because the Free plan allows 10 ms of CPU per step; the measurements are in [EVALUATION.md](./EVALUATION.md).
+- **Progress is reported from inside each step after the work is done.** A stage is shown as running only because the previous one finished. A stage that read nothing it needed (for example zero config files) is reported as failed, not done.
+- **Unreadable is not missing.** A file that was in the tree but could not be downloaded produces `CF_CONFIG_UNREADABLE`; `CF_CONFIG_NOT_FOUND` is only reported when the tree really has no config.
+- **Durable Object config.** ShipGuard's own `wrangler.jsonc` uses the declarative `exports` field; the rules understand both `exports` and legacy `migrations`.
+- **Watching.** A cron schedule on the agent (`schedule("0 */6 * * *", "watchTick")`) reads the current commit and starts an audit only if it differs from the latest audit.
+- **Test seam.** The Workers AI binding is called as `ai.run(...)`, so the runtime tests substitute an RPC service binding for it and exercise the production code path unchanged.

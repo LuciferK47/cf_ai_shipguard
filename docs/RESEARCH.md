@@ -152,9 +152,17 @@ Rate limits surface as HTTP 403 or 429 with `x-ratelimit-remaining: 0`.
 
 ## 4. Empirical checks
 
-These are filled in as they are run. Nothing below is assumed.
+Everything below was observed, not assumed.
 
-- `npm install` fails with an npm 10.9.7 resolver crash ("Cannot read properties of null (reading 'edgesOut')") when `vitest` is added next to `vite@8`. Installing with `--legacy-peer-deps` works and yields a consistent tree (`vite@8.3.1` deduped). The repository therefore commits an `.npmrc` with `legacy-peer-deps=true`.
-- `wrangler types` and the Wrangler schema accept `exports` and `observability.traces` (checked against wrangler 4.144.0). `wrangler deploy --dry-run` needs the Vite build for `assets.directory`, so it is checked after the app builds.
-- Workers AI streaming tool calls on Llama 3.3: **not yet tested** (needs `wrangler login`).
-- Workers AI JSON mode with the Zod-generated schema: **not yet tested** (needs `wrangler login`).
+- `npm install` with npm 10.9.7 crashes in its resolver ("Cannot read properties of null (reading 'edgesOut')") when `vitest` is added next to `vite@8`. `--legacy-peer-deps` works, so the repository commits an `.npmrc` with `legacy-peer-deps=true`. Because that disables automatic peer installation, required peers are declared explicitly: `@babel/core`, `@ai-sdk/react` and the MCP packages that `agents` imports.
+- **Dependency drift.** The starter's version ranges were six weeks stale. `@cloudflare/ai-chat` 0.9.4 called a method that `agents` 0.17.4 lacked (`host._withAgentSpan is not a function`), found only by running in workerd. Upgraded to `agents` 0.24.0 and `@cloudflare/ai-chat` 0.12.0, which changed `chatRecovery` from a boolean to a config object. The AI SDK stays on v6: `workers-ai-provider` 4.0 requires v7, a separate migration.
+- **Workers reject `fetch(..., { redirect: "error" })`.** ("Invalid redirect value, must be one of follow or manual".) Every GitHub request would have failed in production; Node tests using a fake `fetch` could not see it. The client now uses `redirect: "manual"` and treats any 3xx as an error, which is also safer.
+- `wrangler types` and the deploy dry run accept `exports` and `observability.traces` (wrangler 4.144.0). The dry run reports a 3,069 KiB upload, 712 KiB gzipped, well under the Free plan's limit.
+- A commit SHA is accepted as a tree reference by the Git Trees API, and tree entries are about 245 bytes each, which sets the tree size cap.
+- **CPU budgets (Free plan, 10 ms per step)** drove several changes; see [EVALUATION.md](./EVALUATION.md).
+- Passing an `AbortSignal` from the AI SDK to a binding that is an RPC service needs the `enable_abortsignal_rpc` flag. This affects only the offline stand-in, not the real binding.
+- Workers AI streaming tool calls on Llama 3.3 and JSON mode with the Zod-generated schema against the live model: recorded in the section below.
+
+### Live model checks
+
+LIVE_CHECKS_PLACEHOLDER
