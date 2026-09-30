@@ -46,7 +46,6 @@ export const GITHUB_TIMEOUT_MS = 10_000;
 // https://developers.cloudflare.com/workers-ai/models/llama-3.3-70b-instruct-fp8-fast/
 export const MODEL_CONTEXT_TOKENS = 24_000;
 export const RESERVED_OUTPUT_TOKENS = 2_000;
-export const PROMPT_OVERHEAD_TOKENS = 2_000;
 export const FINDINGS_CONTEXT_TOKENS = 2_500;
 /** Token budget for file blocks placed in the analysis prompt. */
 export const FILE_CONTEXT_TOKENS = 11_000;
