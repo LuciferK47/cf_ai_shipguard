@@ -1,5 +1,5 @@
 import type { Inline } from "./markdown-parse";
-import { parseBlocks } from "./markdown-parse";
+import { parseBlocks, parseInline } from "./markdown-parse";
 
 function renderInline(parts: Inline[]) {
   return parts.map((p, i) => {
@@ -54,4 +54,9 @@ export function Markdown({ text }: { text: string }) {
       })}
     </div>
   );
+}
+
+/** Inline formatting only (code, bold, italic), for short strings such as titles. */
+export function InlineText({ text }: { text: string }) {
+  return <>{renderInline(parseInline(text))}</>;
 }

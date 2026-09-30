@@ -1,3 +1,4 @@
+import { InlineText } from "../Markdown";
 import type {
   AuditDetail,
   Finding,
@@ -57,7 +58,9 @@ export function FindingCard({
               </span>
             )}
           </span>
-          <h3>{f.title}</h3>
+          <h3>
+            <InlineText text={f.title} />
+          </h3>
           <span className="finding-row">
             <span className="badge badge-muted mono">{sourceLabel(f)}</span>
             {f.evidence[0] && (
@@ -74,11 +77,15 @@ export function FindingCard({
         <div className="finding-body">
           <div>
             <h4>Why it matters</h4>
-            <p>{f.explanation}</p>
+            <p>
+              <InlineText text={f.explanation} />
+            </p>
           </div>
           <div>
             <h4>Suggested fix</h4>
-            <p>{f.recommendation}</p>
+            <p>
+              <InlineText text={f.recommendation} />
+            </p>
           </div>
 
           {f.evidence.length > 0 && (
