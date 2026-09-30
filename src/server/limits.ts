@@ -20,10 +20,10 @@ export const MAX_FILES_FETCHED = 16;
 /**
  * Largest tree response that will be read. Parsing it must fit a Workflow
  * step's CPU budget on the Free plan, and each entry is about 250 bytes, so
- * this is roughly 6,000 files. Larger repositories must be audited by
+ * this is roughly 4,000 files. Larger repositories must be audited by
  * sub-directory.
  */
-export const TREE_MAX_BYTES = 1_500_000;
+export const TREE_MAX_BYTES = 1_000_000;
 
 /** Workers AI calls per audit: analysis, and at most one repair attempt. */
 export const MAX_AI_CALLS = 2;

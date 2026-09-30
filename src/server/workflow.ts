@@ -144,18 +144,28 @@ export class AuditWorkflow extends AgentWorkflow<
       );
 
       // 2. List the files (only the sub-directory's subtree when one is audited).
+      //    Parsing the tree and classifying it are separate steps, so each has its
+      //    own 10 ms CPU budget on the Free plan.
+      const tree = await step.do("list-files", NETWORK, async () => {
+        try {
+          const t = await github.getTree(
+            target.owner,
+            target.repo,
+            resolved.sha,
+            target.subpath
+          );
+          return { entries: t.entries, truncated: t.truncated };
+        } catch (err) {
+          throw asWorkflowError(err);
+        }
+      });
+
       const inventory: TreeInventory = await step.do(
-        "list-files",
-        NETWORK,
+        "classify-files",
+        ONCE,
         async () => {
           const s = Date.now();
           try {
-            const tree = await github.getTree(
-              target.owner,
-              target.repo,
-              resolved.sha,
-              target.subpath
-            );
             const inv = buildInventory(
               tree.entries,
               target.subpath,

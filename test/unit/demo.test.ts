@@ -14,7 +14,10 @@ const DEMO = join(import.meta.dirname, "..", "..", "examples", "demo-worker");
 function breakIt(path: string, text: string): string {
   if (path !== "wrangler.jsonc") return text;
   return text
-    .replace('"DeploymentAgent": { "type": "durable-object"', '"DeployAgent": { "type": "durable-object"')
+    .replace(
+      '"DeploymentAgent": { "type": "durable-object"',
+      '"DeployAgent": { "type": "durable-object"'
+    )
     .replace('  "ai": { "binding": "AI" },\n', "");
 }
 
@@ -38,14 +41,19 @@ describe("the demo Worker", () => {
     ]);
     const undeclared = findings.find((f) => f.ruleId === "CF_DO_NOT_DECLARED");
     expect(undeclared?.title).toContain("DeploymentAgent");
-    const notExported = findings.find((f) => f.ruleId === "CF_CLASS_NOT_EXPORTED");
+    const notExported = findings.find(
+      (f) => f.ruleId === "CF_CLASS_NOT_EXPORTED"
+    );
     expect(notExported?.title).toContain("DeployAgent");
   });
 
   it("keeps the same finding for the secret across both states, so memory can say it persists", () => {
-    const broken = runChecks(loadFixture("demo", { dir: DEMO, transform: breakIt }).ctx).findings;
+    const broken = runChecks(
+      loadFixture("demo", { dir: DEMO, transform: breakIt }).ctx
+    ).findings;
     const fixed = runChecks(loadFixture("demo", { dir: DEMO }).ctx).findings;
-    const secret = (list: typeof fixed) => list.find((f) => f.ruleId === "CF_SECRET_IN_VARS")?.fingerprint;
+    const secret = (list: typeof fixed) =>
+      list.find((f) => f.ruleId === "CF_SECRET_IN_VARS")?.fingerprint;
     expect(secret(broken)).toBeDefined();
     expect(secret(broken)).toBe(secret(fixed));
   });

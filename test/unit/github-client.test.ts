@@ -5,6 +5,7 @@ import {
   looksBinary,
   readCapped
 } from "../../src/server/github/client";
+import { TREE_MAX_BYTES } from "../../src/server/limits";
 
 const SHA = "a".repeat(40);
 
@@ -409,7 +410,7 @@ describe("github client: sub-directory trees", () => {
         url: `https://api.github.com/repos/o/r/git/blobs/${T3}`
       }))
     });
-    expect(huge.length).toBeGreaterThan(1_500_000);
+    expect(huge.length).toBeGreaterThan(TREE_MAX_BYTES);
     const { fetch } = fakeFetch(() => new Response(huge));
     const e = await code(createGithubClient({ fetch }).getTree("o", "r", SHA));
     expect(e.code).toBe("REPO_TOO_LARGE");
