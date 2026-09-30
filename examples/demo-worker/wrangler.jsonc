@@ -3,13 +3,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
 
+  // Workers AI, used as env.AI in src/index.ts
+  "ai": { "binding": "AI" },
+
   "durable_objects": {
     "bindings": [{ "name": "DEPLOY_AGENT", "class_name": "DeploymentAgent" }]
   },
 
   // Declarative Durable Object lifecycle (the current recommendation for new Workers).
   "exports": {
-    "DeployAgent": { "type": "durable-object", "storage": "sqlite" }
+    "DeploymentAgent": { "type": "durable-object", "storage": "sqlite" }
   },
 
   "vars": {
