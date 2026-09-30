@@ -480,6 +480,7 @@ export function getAuditDetail(db: Db, id: string): AuditDetail | undefined {
   const running = row.status === "running";
   return {
     ...summary,
+    summary: row.summary ?? "",
     aiNote: row.ai_note ?? undefined,
     manifest: safeJson<Manifest>(row.manifest_json, {
       repo: "",

@@ -165,6 +165,8 @@ export interface AuditSummary {
 }
 
 export interface AuditDetail extends AuditSummary {
+  /** Overall assessment: the verified model summary, or a deterministic one. */
+  summary: string;
   aiNote?: string;
   manifest: Manifest;
   findings: Finding[];

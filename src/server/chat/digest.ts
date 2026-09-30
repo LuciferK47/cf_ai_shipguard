@@ -249,7 +249,7 @@ export function buildDigest(view: MemoryView, message: string): string {
       `Remediation plan from the latest audit:\n${latest.plan.map((p, i) => `${i + 1}. ${p}`).join("\n")}`
     );
 
-  for (const f of pickDetailed(message, latest, view))
+  for (const f of pickDetailed(message, latest))
     out.push(detailBlock(f, view));
 
   const text = out.join("\n\n");
