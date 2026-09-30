@@ -6,5 +6,7 @@
     "types": ["node", "vite/client", "@cloudflare/vitest-plugin/types"],
     // vitest.config.ts is loaded by Node directly, which needs explicit extensions.
     "allowImportingTsExtensions": true
-  }
+  },
+  // The example is a separate project with its own bindings and types.
+  "exclude": ["examples", "dist", "node_modules"]
 }

@@ -60,9 +60,15 @@ function substitute(text: string): string {
 /** Load a fixture exactly the way the workflow would ingest a repository. */
 export function loadFixture(
   name: string,
-  opts: { unread?: readonly string[] } = {}
+  opts: {
+    unread?: readonly string[];
+    /** Load from this directory instead of test/fixtures/<name>. */
+    dir?: string;
+    /** Rewrite each file's text as it is read (to derive a broken variant). */
+    transform?: (path: string, text: string) => string;
+  } = {}
 ): LoadedFixture {
-  const dir = join(FIXTURE_ROOT, name);
+  const dir = opts.dir ?? join(FIXTURE_ROOT, name);
   const entries: TreeEntry[] = walk(dir)
     .map((full) => ({ full, path: relative(dir, full).split(sep).join("/") }))
     .filter((f) => f.path !== "expected.json")
@@ -73,8 +79,10 @@ export function loadFixture(
     }));
 
   const inventory = buildInventory(entries, "", false);
-  const read = (path: string) =>
-    substitute(readFileSync(join(dir, path), "utf8"));
+  const read = (path: string) => {
+    const text = substitute(readFileSync(join(dir, path), "utf8"));
+    return opts.transform ? opts.transform(path, text) : text;
+  };
 
   const unread: Record<string, string> = {};
   const files = new Map<string, string>();
