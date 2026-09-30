@@ -1,0 +1,5 @@
+{
+  "note": "SLACK_WEBHOOK_TOKEN is a placeholder and must not be flagged.",
+  "rules": ["CF_ENV_FILE_COMMITTED", "CF_SECRET_IN_VARS", "CF_SECRET_PATTERN"],
+  "absent": []
+}

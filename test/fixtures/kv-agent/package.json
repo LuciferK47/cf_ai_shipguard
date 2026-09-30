@@ -1,0 +1,10 @@
+{
+  "name": "kv-agent",
+  "dependencies": {
+    "@cloudflare/ai-chat": "^0.9.0",
+    "agents": "^0.17.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

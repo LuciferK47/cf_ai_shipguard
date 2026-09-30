@@ -1,0 +1,5 @@
+{
+  "note": "TOML config: the DO declaration is valid, the AI binding is missing.",
+  "rules": ["CF_AI_BINDING_MISSING"],
+  "absent": []
+}

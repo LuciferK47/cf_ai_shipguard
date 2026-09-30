@@ -1,0 +1,9 @@
+{
+  "name": "tsconfig-decorators",
+  "dependencies": {
+    "agents": "^0.17.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

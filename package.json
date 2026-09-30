@@ -4,11 +4,11 @@
   "private": true,
   "description": "ShipGuard: an AI deployment preflight and debugging agent for Cloudflare applications.",
   "keywords": [
-    "cloudflare",
     "agents",
-    "workflows",
+    "cloudflare",
+    "durable-objects",
     "workers-ai",
-    "durable-objects"
+    "workflows"
   ],
   "license": "MIT",
   "type": "module",

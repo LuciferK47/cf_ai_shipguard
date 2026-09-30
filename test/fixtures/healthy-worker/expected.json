@@ -1,0 +1,5 @@
+{
+  "note": "Declarative exports flow; an empty secret-named var is a placeholder, not a finding.",
+  "rules": [],
+  "absent": []
+}

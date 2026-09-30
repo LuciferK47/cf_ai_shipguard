@@ -1,0 +1,5 @@
+{
+  "note": "",
+  "rules": ["CF_NODEJS_COMPAT_MISSING"],
+  "absent": []
+}

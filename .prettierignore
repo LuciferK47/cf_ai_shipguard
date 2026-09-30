@@ -1,1 +1,7 @@
 env.d.ts
+
+# Fixtures are intentionally unformatted (some are deliberately malformed)
+test/fixtures/
+env.d.ts
+evals/results/
+PROMPTS.md

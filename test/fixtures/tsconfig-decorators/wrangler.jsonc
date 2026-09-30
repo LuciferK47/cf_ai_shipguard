@@ -1,0 +1,7 @@
+{
+  "name": "tsconfig-decorators",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "durable_objects": { "bindings": [{ "name": "Bot", "class_name": "Bot" }] },
+  "exports": { "Bot": { "type": "durable-object", "storage": "sqlite" } }
+}

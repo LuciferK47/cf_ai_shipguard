@@ -1,0 +1,10 @@
+{
+  "name": "exposed-secret-config",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "vars": {
+    "STRIPE_SECRET_KEY": "sk_live_notarealkey1234567890",
+    "SLACK_WEBHOOK_TOKEN": "changeme",
+    "LOG_LEVEL": "info"
+  }
+}

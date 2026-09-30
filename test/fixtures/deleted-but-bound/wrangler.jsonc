@@ -1,0 +1,12 @@
+{
+  "name": "deleted-but-bound",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "durable_objects": {
+    "bindings": [{ "name": "OLD", "class_name": "OldRoom" }]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["OldRoom"] },
+    { "tag": "v2", "deleted_classes": ["OldRoom"] }
+  ]
+}

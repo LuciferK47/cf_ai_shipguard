@@ -1,0 +1,5 @@
+{
+  "note": "From 2026-08-04 nodejs_compat is on by default, so no flag is needed.",
+  "rules": [],
+  "absent": []
+}

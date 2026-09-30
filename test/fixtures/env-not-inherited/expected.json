@@ -1,0 +1,5 @@
+{
+  "note": "Only the staging environment is missing keys.",
+  "rules": ["CF_ENV_NOT_INHERITED"],
+  "absent": []
+}

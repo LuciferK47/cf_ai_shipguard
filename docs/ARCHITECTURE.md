@@ -28,12 +28,12 @@ The agent remembers each audit, so the developer can ask "what migration problem
 
 ## C. Assignment requirement to component
 
-| Requirement | Component |
-|---|---|
-| LLM | Workers AI `@cf/meta/llama-3.3-70b-instruct-fp8-fast`: JSON-mode analysis inside the workflow, streaming chat in the agent |
-| Workflow / coordination | Cloudflare Workflows via `AgentWorkflow` (`src/server/workflow.ts`), started and tracked by the agent |
-| User input (chat) | `AIChatAgent` over WebSocket, React client with `useAgent` and `useAgentChat`, plus an audit form |
-| Memory / state | Durable Object SQLite (audits, findings, stable finding IDs, dispositions), small synced agent state, persisted chat |
+| Requirement             | Component                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| LLM                     | Workers AI `@cf/meta/llama-3.3-70b-instruct-fp8-fast`: JSON-mode analysis inside the workflow, streaming chat in the agent |
+| Workflow / coordination | Cloudflare Workflows via `AgentWorkflow` (`src/server/workflow.ts`), started and tracked by the agent                      |
+| User input (chat)       | `AIChatAgent` over WebSocket, React client with `useAgent` and `useAgentChat`, plus an audit form                          |
+| Memory / state          | Durable Object SQLite (audits, findings, stable finding IDs, dispositions), small synced agent state, persisted chat       |
 
 ## D. Why these Cloudflare products
 
@@ -47,34 +47,34 @@ The agent remembers each audit, so the developer can ask "what migration problem
 
 ## E. Alternatives rejected
 
-| Alternative | Why not |
-|---|---|
-| Project Think + ThinkWorkflow | Documented incompatibility: Llama 3.3 ignores forced tool choice while streaming, which breaks `step.prompt()`. |
-| Model-driven tools in chat | Llama 3.3 is not reliable at streaming tool calls. Retrieval is deterministic instead. |
-| Sessions API for project memory | Experimental. Own SQL tables are simpler and stable. |
-| Sandbox deep verification | Requires Workers Paid and containers. Core must run on the Free plan. |
-| Browser Run | Experimental and off-mission. |
-| MCP GitHub server | Extra auth and connection state for no gain over read-only REST. |
-| Code Mode | No large tool catalog to justify it. |
-| PR or issue creation | A read-only diagnosis tool is more trustworthy than a half-working bot. |
-| One agent per repository | Different users would share chat and memory. Agents are per workspace instead. |
-| External model (Anthropic, OpenAI) | Workers AI is recommended by the assignment and keeps the app Cloudflare-native. |
+| Alternative                        | Why not                                                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Project Think + ThinkWorkflow      | Documented incompatibility: Llama 3.3 ignores forced tool choice while streaming, which breaks `step.prompt()`. |
+| Model-driven tools in chat         | Llama 3.3 is not reliable at streaming tool calls. Retrieval is deterministic instead.                          |
+| Sessions API for project memory    | Experimental. Own SQL tables are simpler and stable.                                                            |
+| Sandbox deep verification          | Requires Workers Paid and containers. Core must run on the Free plan.                                           |
+| Browser Run                        | Experimental and off-mission.                                                                                   |
+| MCP GitHub server                  | Extra auth and connection state for no gain over read-only REST.                                                |
+| Code Mode                          | No large tool catalog to justify it.                                                                            |
+| PR or issue creation               | A read-only diagnosis tool is more trustworthy than a half-working bot.                                         |
+| One agent per repository           | Different users would share chat and memory. Agents are per workspace instead.                                  |
+| External model (Anthropic, OpenAI) | Workers AI is recommended by the assignment and keeps the app Cloudflare-native.                                |
 
 ## F. State partitioning
 
 One `ShipGuardAgent` Durable Object per workspace. The instance name is a random UUID held in the browser.
 
-| Store | Contents | Bound |
-|---|---|---|
-| AIChatAgent messages (SQLite) | conversation | `maxPersistedMessages = 200` |
-| `this.state` (broadcast to clients) | active target, running audit stage list, up to 10 recent audit summaries | small by construction |
-| SQL `targets` | repository, ref, subpath, default branch | one row per target |
-| SQL `audits` | status, commit SHA, AI status, error, summary, evidence manifest, timings | last 20 per target, older rows pruned |
-| SQL `audit_stages` | measured stage results per audit | one row per stage |
-| SQL `findings` | fingerprint, severity, source, evidence, status versus previous audit | tied to pruned audits |
-| SQL `finding_ids` | stable display IDs (`F-001`, ...) per target and fingerprint | permanent |
-| SQL `dispositions` | accepted or dismissed, with a note | per finding |
-| Workers KV | cached AI analysis | 7-day TTL |
+| Store                               | Contents                                                                  | Bound                                 |
+| ----------------------------------- | ------------------------------------------------------------------------- | ------------------------------------- |
+| AIChatAgent messages (SQLite)       | conversation                                                              | `maxPersistedMessages = 200`          |
+| `this.state` (broadcast to clients) | active target, running audit stage list, up to 10 recent audit summaries  | small by construction                 |
+| SQL `targets`                       | repository, ref, subpath, default branch                                  | one row per target                    |
+| SQL `audits`                        | status, commit SHA, AI status, error, summary, evidence manifest, timings | last 20 per target, older rows pruned |
+| SQL `audit_stages`                  | measured stage results per audit                                          | one row per stage                     |
+| SQL `findings`                      | fingerprint, severity, source, evidence, status versus previous audit     | tied to pruned audits                 |
+| SQL `finding_ids`                   | stable display IDs (`F-001`, ...) per target and fingerprint              | permanent                             |
+| SQL `dispositions`                  | accepted or dismissed, with a note                                        | per finding                           |
+| Workers KV                          | cached AI analysis                                                        | 7-day TTL                             |
 
 Large records reach the client through a callable method (`getAudit`), not through broadcast state.
 
@@ -82,7 +82,7 @@ Large records reach the client through a callable method (`getAudit`), not throu
 
 - **Steps are checkpointed.** Only step return values survive; each stage returns plain JSON under 1 MiB.
 - **Retries are scoped.** Network stages retry with backoff; validation and "not found" errors throw `NonRetryableError`.
-- **Free-plan budget.** The workflow makes at most about 38 subrequests (see `src/server/limits.ts`), so a retry cannot exhaust the 50-request cap.
+- **Free-plan budget.** The workflow plans for at most 33 subrequests (3 GitHub API calls, 20 file fetches, 2 AI calls, 2 KV calls and 6 agent RPC calls; see `src/server/limits.ts`), so a retry cannot exhaust the 50-request cap.
 - **Per-file fetch failures are data, not exceptions.** They are recorded in the manifest, so retrying the step does not double the request count.
 - **Progress is honest.** `reportProgress` fires after each completed stage. It is non-durable and can repeat, so the agent handler is an idempotent upsert keyed by `(auditId, stage)`.
 - **Completion is durable.** The final write goes through `this.agent` RPC inside a SQL transaction and uses upserts, so a replayed step cannot create a duplicate report.
@@ -92,15 +92,15 @@ Large records reach the client through a callable method (`getAudit`), not throu
 
 ## H. What the LLM decides versus what stays deterministic
 
-| Deterministic code | LLM |
-|---|---|
-| URL validation, SHA resolution, tree walking | Cross-finding reasoning and prioritization |
-| File selection, budgets, coverage manifest | Additional findings the rules do not cover (labelled "AI") |
-| Config parsing (JSONC/TOML) and all rules | Explanations and a remediation plan |
-| Secret detection and redaction | Grounded answers to follow-up chat questions |
-| Evidence verification (paths, lines, excerpts) | |
-| Finding fingerprints, diffs between audits | |
-| Chat intent detection and memory retrieval | |
+| Deterministic code                             | LLM                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| URL validation, SHA resolution, tree walking   | Cross-finding reasoning and prioritization                 |
+| File selection, budgets, coverage manifest     | Additional findings the rules do not cover (labelled "AI") |
+| Config parsing (JSONC/TOML) and all rules      | Explanations and a remediation plan                        |
+| Secret detection and redaction                 | Grounded answers to follow-up chat questions               |
+| Evidence verification (paths, lines, excerpts) |                                                            |
+| Finding fingerprints, diffs between audits     |                                                            |
+| Chat intent detection and memory retrieval     |                                                            |
 
 The model never checks something a regex or parser can check, and it never gets a tool that does anything.
 
@@ -116,14 +116,14 @@ Full detail is in [SECURITY.md](./SECURITY.md). In short:
 
 ## J. Fallbacks when a service is unavailable
 
-| Missing or failing | Behaviour |
-|---|---|
-| `GITHUB_TOKEN` not set | Works with anonymous GitHub limits. Rate-limit errors are shown with the reset time. |
-| GitHub 404 or private repo | Visible error naming the cause. No retry. |
-| Workers AI error, neuron limit reached, or invalid output | Audit completes with deterministic findings and a visible AI-unavailable notice. |
-| KV cache unavailable | Skipped, analysis runs normally. |
-| AI Gateway not configured | Direct binding calls are used. |
-| Tracing off or beta ends | Structured logs still record each stage. |
+| Missing or failing                                        | Behaviour                                                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `GITHUB_TOKEN` not set                                    | Works with anonymous GitHub limits. Rate-limit errors are shown with the reset time. |
+| GitHub 404 or private repo                                | Visible error naming the cause. No retry.                                            |
+| Workers AI error, neuron limit reached, or invalid output | Audit completes with deterministic findings and a visible AI-unavailable notice.     |
+| KV cache unavailable                                      | Skipped, analysis runs normally.                                                     |
+| AI Gateway not configured                                 | Direct binding calls are used.                                                       |
+| Tracing off or beta ends                                  | Structured logs still record each stage.                                             |
 
 ## Decisions that differ from the original proposal
 

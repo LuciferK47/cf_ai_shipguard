@@ -1,0 +1,13 @@
+{
+  "name": "healthy-worker-legacy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+  "workflows": [
+    { "name": "healthy-flow", "binding": "FLOW", "class_name": "HealthyFlow" }
+  ]
+}

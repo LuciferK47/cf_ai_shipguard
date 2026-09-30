@@ -1,0 +1,5 @@
+{
+  "note": "",
+  "rules": ["CF_DEPLOY_SCRIPT_CONFIG_MISSING"],
+  "absent": []
+}

@@ -1,0 +1,8 @@
+{
+  "name": "class-not-exported",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "Room" }] },
+  "exports": { "Room": { "type": "durable-object", "storage": "sqlite" } },
+  "workflows": [{ "name": "flow", "binding": "FLOW", "class_name": "Flow" }]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "deploy-script",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --config wrangler.prod.jsonc"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "note": "The binding names DeploymentAgent, the migration registers DeployAgent, and tag v1 is reused.",
+  "rules": ["CF_DO_DUPLICATE_TAG", "CF_DO_NOT_DECLARED"],
+  "absent": []
+}

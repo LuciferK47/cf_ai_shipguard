@@ -1,0 +1,5 @@
+{
+  "note": "A parse error must not cascade into config-dependent findings.",
+  "rules": ["CF_CONFIG_PARSE_ERROR"],
+  "absent": ["CF_COMPAT_DATE_MISSING", "CF_AI_BINDING_MISSING"]
+}
