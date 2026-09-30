@@ -1,4 +1,3 @@
-import { findSecrets } from "../security/redact";
 import type { Finding } from "../../shared/types";
 import { DOCS, ruleFinding } from "./helpers";
 import type { Rule } from "./types";
@@ -10,11 +9,10 @@ export const secretPattern: Rule = {
   id: "CF_SECRET_PATTERN",
   run(ctx) {
     const out: Finding[] = [];
-    for (const [path, text] of ctx.files) {
-      const hits = findSecrets(text);
+    for (const [path, hits] of Object.entries(ctx.secretHits)) {
       if (hits.length === 0) continue;
 
-      const byPattern = new Map<string, typeof hits>();
+      const byPattern = new Map<string, (typeof hits)[number][]>();
       for (const h of hits) {
         const list = byPattern.get(h.patternId) ?? [];
         list.push(h);

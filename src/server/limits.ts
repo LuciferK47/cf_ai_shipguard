@@ -20,8 +20,8 @@ export const MAX_AI_CALLS = 2;
 /** KV reads and writes for the analysis cache. */
 export const KV_CALLS = 2;
 
-/** Agent RPC calls made by the workflow (progress, persist, complete). */
-export const AGENT_RPC_CALLS_RESERVED = 6;
+/** Agent RPC calls made by the workflow (one progress report per stage, plus persist and complete). */
+export const AGENT_RPC_CALLS_RESERVED = 10;
 
 export const PLANNED_SUBREQUESTS =
   GITHUB_API_CALLS +
@@ -33,8 +33,11 @@ export const PLANNED_SUBREQUESTS =
 /** Individual file size limit, bytes. Larger files are skipped, not truncated. */
 export const MAX_FILE_BYTES = 100_000;
 
-/** Total characters retrieved across all files in one audit. */
-export const MAX_TOTAL_CHARS = 400_000;
+/**
+ * Total characters retrieved across all files in one audit. Bounded by the
+ * Free plan's 10 ms CPU per Workflow step and by the 1 MiB step-result limit.
+ */
+export const MAX_TOTAL_CHARS = 200_000;
 
 /** Files listed in the tree beyond this count are ignored. */
 export const MAX_TREE_ENTRIES = 20_000;

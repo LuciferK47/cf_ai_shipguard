@@ -2,6 +2,7 @@ import type { Finding } from "../../shared/types";
 import type { ParsedPackage } from "../config/package";
 import type { ParsedTsconfig } from "../config/tsconfig";
 import type { ParsedWrangler } from "../config/wrangler";
+import type { SecretHit } from "../security/redact";
 import type { ScannedSource } from "./source";
 
 /** Everything the rules may look at. Built once per audit, then read-only. */
@@ -24,6 +25,8 @@ export interface CheckContext {
   pkg?: ParsedPackage;
   tsconfig?: ParsedTsconfig;
   sources: readonly ScannedSource[];
+  /** Secret-shaped matches per file (already redacted). */
+  secretHits: Readonly<Record<string, readonly SecretHit[]>>;
   /** How much of the repository's source was actually inspected. */
   coverage: {
     sourcesFetched: number;

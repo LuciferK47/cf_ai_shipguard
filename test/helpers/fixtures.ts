@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { buildContext } from "../../src/server/checks/context";
+import { scanFiles } from "../../src/server/checks/scan";
 import type { CheckContext } from "../../src/server/checks/types";
 import type { TreeEntry } from "../../src/server/github/client";
 import { chooseSources } from "../../src/server/ingest/plan";
@@ -84,7 +85,8 @@ export function loadFixture(name: string): LoadedFixture {
     pathsComplete: inventory.pathsComplete,
     neverFetched: inventory.neverFetched,
     otherProjects: inventory.otherProjects,
-    sourceFileCount: inventory.sourceFileCount
+    sourceFileCount: inventory.sourceFileCount,
+    scan: scanFiles(files)
   });
 
   const expectedPath = join(dir, "expected.json");

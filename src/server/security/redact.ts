@@ -71,25 +71,58 @@ export interface SecretHit {
   excerpt: string;
 }
 
-/** Scan text for secret-shaped values. The returned excerpts are redacted. */
+/**
+ * Scan text for secret-shaped values. The returned excerpts are redacted.
+ *
+ * Each pattern is run once over the whole text (the regex engine is fast at
+ * this), and line numbers are computed only for actual matches. This keeps the
+ * cost low enough for a Workflow step on the Free plan (10 ms CPU).
+ */
 export function findSecrets(text: string): SecretHit[] {
   const hits: SecretHit[] = [];
-  const lines = text.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.length > 2000) continue;
-    for (const pattern of SECRET_PATTERNS) {
-      if (new RegExp(pattern.regex.source).test(line)) {
-        hits.push({
-          patternId: pattern.id,
-          label: pattern.label,
-          line: i + 1,
-          excerpt: redactSecrets(line.trim()).slice(0, 160)
-        });
+  let lineStarts: number[] | undefined;
+
+  const lineOf = (
+    offset: number
+  ): { line: number; start: number; end: number } => {
+    if (!lineStarts) {
+      lineStarts = [0];
+      let i = text.indexOf("\n");
+      while (i !== -1) {
+        lineStarts.push(i + 1);
+        i = text.indexOf("\n", i + 1);
       }
     }
+    let lo = 0;
+    let hi = lineStarts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (lineStarts[mid] <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    const start = lineStarts[lo];
+    const nl = text.indexOf("\n", start);
+    return { line: lo + 1, start, end: nl === -1 ? text.length : nl };
+  };
+
+  for (const pattern of SECRET_PATTERNS) {
+    const re = new RegExp(pattern.regex.source, "g");
+    for (const m of text.matchAll(re)) {
+      const at = lineOf(m.index ?? 0);
+      // Minified or generated lines are not scanned for excerpts.
+      if (at.end - at.start > 2000) continue;
+      hits.push({
+        patternId: pattern.id,
+        label: pattern.label,
+        line: at.line,
+        excerpt: redactSecrets(text.slice(at.start, at.end).trim()).slice(
+          0,
+          160
+        )
+      });
+    }
   }
-  return hits;
+  return hits.sort((a, b) => a.line - b.line);
 }
 
 const SECRET_KEY_NAME =

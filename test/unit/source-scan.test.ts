@@ -61,7 +61,7 @@ describe("scanSource: exports", () => {
       "a.ts",
       "export default class Foo {}\nexport { Bar as default };"
     );
-    expect(s.exportedNames.size).toBe(0);
+    expect(s.exportedNames).toEqual([]);
   });
 
   it("ignores exports inside comments", () => {
@@ -69,7 +69,7 @@ describe("scanSource: exports", () => {
       "a.ts",
       "// export class Ghost {}\n/* export { Phantom } */"
     );
-    expect(s.exportedNames.size).toBe(0);
+    expect(s.exportedNames).toEqual([]);
   });
 
   it("detects star re-exports", () => {
@@ -130,5 +130,71 @@ describe("scanSource: classes and imports", () => {
   it("detects @callable usage", () => {
     expect(scanSource("a.ts", "@callable()\nfoo() {}").usesCallable).toBe(true);
     expect(scanSource("a.ts", "// @callable()").usesCallable).toBe(false);
+  });
+});
+
+import {
+  mergeScans,
+  planScanBatches,
+  scanFiles
+} from "../../src/server/checks/scan";
+
+describe("scan batching (keeps each Workflow step under the Free-plan CPU cap)", () => {
+  const files = new Map([
+    ["a.ts", "x".repeat(40_000)],
+    ["b.ts", "y".repeat(30_000)],
+    ["c.ts", "z".repeat(5_000)],
+    ["d.ts", "w".repeat(90_000)]
+  ]);
+
+  it("groups files without exceeding the batch size", () => {
+    const batches = planScanBatches(files, 60_000);
+    expect(batches).toEqual([["a.ts"], ["b.ts", "c.ts"], ["d.ts"]]);
+  });
+
+  it("gives an oversized file its own batch", () => {
+    expect(
+      planScanBatches(new Map([["big.ts", "x".repeat(500_000)]]), 60_000)
+    ).toEqual([["big.ts"]]);
+  });
+
+  it("returns no batches for no files", () => {
+    expect(planScanBatches(new Map())).toEqual([]);
+  });
+
+  it("covers every file exactly once", () => {
+    const flat = planScanBatches(files, 50_000).flat();
+    expect(flat.sort()).toEqual([...files.keys()].sort());
+  });
+
+  it("gives the same result whether scanned at once or in batches", () => {
+    const key = ["AKIA", "IOSFODNN7EXAMPLE"].join("");
+    const real = new Map([
+      ["src/a.ts", 'export class A {}\nconst k = "' + key + '";'],
+      [
+        "src/b.ts",
+        'import { Agent } from "agents";\nexport class B extends Agent {}'
+      ],
+      ["README.md", "text"]
+    ]);
+    const whole = scanFiles(real);
+    const parts = mergeScans(
+      planScanBatches(real, 10).map((paths) => scanFiles(real, paths))
+    );
+    expect(parts.sources.map((s) => s.path).sort()).toEqual(
+      whole.sources.map((s) => s.path).sort()
+    );
+    expect(Object.keys(parts.secretHits)).toEqual(
+      Object.keys(whole.secretHits)
+    );
+    expect(whole.sources.map((s) => s.path)).not.toContain("README.md");
+    expect(whole.secretHits["src/a.ts"][0].line).toBe(2);
+  });
+
+  it("returns results without file text, so they fit in a step result", () => {
+    const r = scanFiles(
+      new Map([["a.ts", "export class A {}\n".repeat(1000)]])
+    );
+    expect(JSON.stringify(r).length).toBeLessThan(500);
   });
 });

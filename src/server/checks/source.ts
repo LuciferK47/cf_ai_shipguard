@@ -11,13 +11,13 @@ export interface ScannedClass {
   exported: boolean;
 }
 
+/**
+ * What the rules need to know about one source file. Deliberately small and
+ * free of the file text, so scan results can be passed between Workflow steps.
+ */
 export interface ScannedSource {
   path: string;
-  /** Original text (line numbers refer to this). */
-  text: string;
-  /** Text with comments blanked out; same length and line structure. */
-  code: string;
-  exportedNames: Set<string>;
+  exportedNames: string[];
   hasStarExport: boolean;
   classes: ScannedClass[];
   importsAgentsSdk: boolean;
@@ -26,60 +26,22 @@ export interface ScannedSource {
   nodeImports: Array<{ spec: string; line: number }>;
 }
 
+// One alternation that matches, in source order, either a string literal (kept
+// as is) or a comment (blanked). Running it through the regex engine is several
+// times faster than walking the text in JavaScript. A quote that is never
+// closed on its line matches nothing, so a stray quote (for example inside a
+// regular expression) cannot swallow the rest of the file.
+const STRING_OR_COMMENT =
+  /"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$)/g;
+
 /** Replace comments with spaces, keeping newlines so line numbers stay valid. */
 export function stripComments(src: string): string {
-  const n = src.length;
-  const parts: string[] = [];
-  let last = 0;
-  let i = 0;
-  const blank = (s: string) => s.replace(/[^\n]/g, " ");
-
-  while (i < n) {
-    const c = src.charCodeAt(i);
-    // ' " `
-    if (c === 39 || c === 34 || c === 96) {
-      i = skipString(src, i, c);
-      continue;
-    }
-    if (c === 47) {
-      const d = src.charCodeAt(i + 1);
-      if (d === 47) {
-        let end = src.indexOf("\n", i);
-        if (end === -1) end = n;
-        parts.push(src.slice(last, i), blank(src.slice(i, end)));
-        last = i = end;
-        continue;
-      }
-      if (d === 42) {
-        let end = src.indexOf("*/", i + 2);
-        end = end === -1 ? n : end + 2;
-        parts.push(src.slice(last, i), blank(src.slice(i, end)));
-        last = i = end;
-        continue;
-      }
-    }
-    i++;
-  }
-  parts.push(src.slice(last));
-  return parts.join("");
-}
-
-function skipString(src: string, start: number, quote: number): number {
-  const n = src.length;
-  let i = start + 1;
-  while (i < n) {
-    const c = src.charCodeAt(i);
-    if (c === 92) {
-      i += 2;
-      continue;
-    }
-    if (c === quote) return i + 1;
-    // Plain quotes cannot span lines; stop so a stray quote (for example in a
-    // regular expression) cannot swallow the rest of the file.
-    if (c === 10 && quote !== 96) return i;
-    i++;
-  }
-  return n;
+  if (!src.includes("/*") && !src.includes("//")) return src;
+  return src.replace(STRING_OR_COMMENT, (m) => {
+    const c = m.charCodeAt(0);
+    if (c === 34 || c === 39 || c === 96) return m;
+    return m.replace(/[^\n]/g, " ");
+  });
 }
 
 const NAME = "[A-Za-z_$][\\w$]*";
@@ -101,7 +63,9 @@ const NODE_IMPORT =
 
 export function scanSource(path: string, text: string): ScannedSource {
   const code = stripComments(text);
-  const lines = new LineIndex(code);
+  let lines: LineIndex | undefined;
+  const lineOf = (offset: number) =>
+    (lines ??= new LineIndex(code)).at(offset).line;
 
   const exportedNames = new Set<string>();
   for (const m of code.matchAll(EXPORT_CLASS)) exportedNames.add(m[1]);
@@ -123,31 +87,24 @@ export function scanSource(path: string, text: string): ScannedSource {
     classes.push({
       name: m[2],
       base: m[3].split(".").pop() ?? m[3],
-      line: lines.at(m.index ?? 0).line,
+      line: lineOf(m.index ?? 0),
       exported: !!m[1] && !isDefault
     });
   }
 
   let envAiLine: number | undefined;
-  const codeLines = code.split("\n");
-  for (let i = 0; i < codeLines.length; i++) {
-    if (codeLines[i].length < 2000 && ENV_AI.test(codeLines[i])) {
-      envAiLine = i + 1;
-      break;
-    }
-  }
+  const envAi = ENV_AI.exec(code);
+  if (envAi) envAiLine = lineOf(envAi.index);
 
   const nodeImports: Array<{ spec: string; line: number }> = [];
   for (const m of code.matchAll(NODE_IMPORT)) {
-    nodeImports.push({ spec: m[1], line: lines.at(m.index ?? 0).line });
+    nodeImports.push({ spec: m[1], line: lineOf(m.index ?? 0) });
     if (nodeImports.length >= 20) break;
   }
 
   return {
     path,
-    text,
-    code,
-    exportedNames,
+    exportedNames: [...exportedNames],
     hasStarExport: STAR_EXPORT.test(code),
     classes,
     importsAgentsSdk: AGENTS_IMPORT.test(code),
@@ -165,6 +122,9 @@ export const AGENT_BASES: ReadonlySet<string> = new Set([
   "Think"
 ]);
 
-export function isAgentClass(c: ScannedClass, src: ScannedSource): boolean {
+export function isAgentClass(
+  c: ScannedClass,
+  src: Pick<ScannedSource, "importsAgentsSdk">
+): boolean {
   return AGENT_BASES.has(c.base) && src.importsAgentsSdk;
 }

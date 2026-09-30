@@ -1,7 +1,7 @@
 import { parsePackage } from "../config/package";
 import { parseTsconfig } from "../config/tsconfig";
 import { parseWrangler, type ParsedWrangler } from "../config/wrangler";
-import { scanSource } from "./source";
+import type { ScanResult } from "./scan";
 import type { CheckContext } from "./types";
 
 export interface ContextInput {
@@ -14,9 +14,9 @@ export interface ContextInput {
   otherProjects: readonly string[];
   /** Fetchable source files under the base, whether or not they were fetched. */
   sourceFileCount: number;
+  /** Output of `scanFiles`, computed in its own step. */
+  scan: ScanResult;
 }
-
-const CODE_EXT = /\.(?:[cm]?[jt]sx?)$/;
 
 function inBase(base: string, name: string): string {
   return base === "" ? name : `${base}/${name}`;
@@ -35,10 +35,7 @@ export function buildContext(input: ContextInput): CheckContext {
   const pkgText = files.get(inBase(base, "package.json"));
   const tsText = files.get(inBase(base, "tsconfig.json"));
 
-  const sources = [];
-  for (const [path, text] of files) {
-    if (CODE_EXT.test(path)) sources.push(scanSource(path, text));
-  }
+  const { sources, secretHits } = input.scan;
 
   return {
     base,
@@ -58,6 +55,7 @@ export function buildContext(input: ContextInput): CheckContext {
         ? parseTsconfig(inBase(base, "tsconfig.json"), tsText)
         : undefined,
     sources,
+    secretHits,
     coverage: {
       sourcesFetched: sources.length,
       sourcesTotal: Math.max(input.sourceFileCount, sources.length),
