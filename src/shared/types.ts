@@ -191,7 +191,13 @@ export interface ShipGuardState {
     stages: StageState[];
   };
   recent: AuditSummary[];
-  watch?: { target: Target; enabled: boolean };
+  /** Scheduled check for new commits on the watched project. */
+  watch?: {
+    target: Target;
+    enabled: boolean;
+    lastCheckedAt?: string;
+    lastResult?: "unchanged" | "audit-started" | "busy" | "error";
+  };
 }
 
 export const EMPTY_STATE: ShipGuardState = { recent: [] };

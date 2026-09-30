@@ -127,6 +127,20 @@ export function useShipGuard(workspaceId: string) {
     }
   }, []);
 
+  const setWatch = useCallback(
+    async (enabled: boolean): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        return (await agentRef.current.call("setWatch", [enabled])) as {
+          ok: boolean;
+          error?: string;
+        };
+      } catch {
+        return { ok: false, error: "Could not reach the agent." };
+      }
+    },
+    []
+  );
+
   const setFindingStatus = useCallback(
     async (ref: string, status: FindingStatus, note?: string) => {
       await agentRef.current.call("setFindingStatus", [ref, status, note]);
@@ -163,7 +177,8 @@ export function useShipGuard(workspaceId: string) {
       state.running !== undefined && state.running.auditId === effectiveId,
     startAudit,
     reaudit,
-    setFindingStatus
+    setFindingStatus,
+    setWatch
   };
 }
 

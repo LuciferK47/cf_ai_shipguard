@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-09-30T10:16:13.051Z",
+    "generatedAt": "2026-09-30T13:12:51.341Z",
     "fixtures": 21,
     "rulesInEngine": 19,
     "rulesExercised": 19,
@@ -21,7 +21,7 @@
     },
     "plantedSecretLeaks": 0,
     "oversizedEntries": 30002,
-    "oversizedInventoryMs": 95.7
+    "oversizedInventoryMs": 309
   },
   "rules": [
     {

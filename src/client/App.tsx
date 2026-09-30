@@ -61,6 +61,7 @@ export function App() {
               api.setSelectedId(id);
               setView("panel");
             }}
+            onWatch={api.setWatch}
             onStart={async (url) => {
               const res = await api.startAudit(url);
               // On small screens, follow the audit that was just started.

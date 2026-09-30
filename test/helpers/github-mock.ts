@@ -101,6 +101,26 @@ export function createGithubMock() {
     return name;
   }
 
+  // A repository can be "pushed to": each bump creates a new commit SHA while
+  // earlier commits stay readable, as on GitHub.
+  const revisions = new Map<string, number>();
+  // Repositories whose API answers 502, switched on and off by the tests.
+  const failing = new Set<string>();
+  const commitOf = (
+    name: string,
+    ref: string,
+    rev = revisions.get(name) ?? 0
+  ) => (rev === 0 ? sha(`${name}@${ref}`) : sha(`${name}@${ref}#${rev}`));
+  const matchCommit = (name: string, commit: string) => {
+    const refs = VARIANTS[name] ? Object.keys(VARIANTS[name]) : ["main"];
+    for (const ref of refs) {
+      for (let rev = 0; rev <= (revisions.get(name) ?? 0); rev++) {
+        if (commitOf(name, ref, rev) === commit) return { ref, commit };
+      }
+    }
+    return undefined;
+  };
+
   const handler = async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
 
@@ -109,7 +129,20 @@ export function createGithubMock() {
       return json(calls);
     if (url.hostname === "mock.local" && url.pathname === "/__reset") {
       calls.length = 0;
+      revisions.clear();
+      failing.clear();
       return json({ ok: true });
+    }
+    if (url.hostname === "mock.local" && url.pathname === "/__fail") {
+      const repo = url.searchParams.get("repo") ?? "";
+      if (url.searchParams.get("on") === "0") failing.delete(repo);
+      else failing.add(repo);
+      return json({ ok: true });
+    }
+    if (url.hostname === "mock.local" && url.pathname === "/__bump") {
+      const repo = url.searchParams.get("repo") ?? "";
+      revisions.set(repo, (revisions.get(repo) ?? 0) + 1);
+      return json({ ok: true, revision: revisions.get(repo) });
     }
     calls.push({
       method: request.method,
@@ -136,7 +169,8 @@ export function createGithubMock() {
           }
         });
       }
-      if (name === "flaky-github") return new Response("{}", { status: 502 });
+      if (name === "flaky-github" || failing.has(name))
+        return new Response("{}", { status: 502 });
 
       if (!kind)
         return json({
@@ -151,7 +185,7 @@ export function createGithubMock() {
         const ref = decodeURIComponent(rest);
         if (VARIANTS[name] && !VARIANTS[name][ref] && ref !== "main")
           return new Response("{}", { status: 422 });
-        return new Response(sha(`${name}@${ref}`), {
+        return new Response(commitOf(name, ref), {
           headers: { "content-type": "text/plain" }
         });
       }
@@ -159,8 +193,14 @@ export function createGithubMock() {
       // git/trees/<sha>[?recursive=1]
       const treeSha = decodeURIComponent(rest);
       const refs = VARIANTS[name] ? Object.keys(VARIANTS[name]) : ["main"];
-      for (const ref of refs) {
-        const commit = sha(`${name}@${ref}`);
+      const revs = revisions.get(name) ?? 0;
+      const candidates = refs.flatMap((ref) =>
+        Array.from({ length: revs + 1 }, (_, rev) => ({
+          ref,
+          commit: commitOf(name, ref, rev)
+        }))
+      );
+      for (const { ref, commit } of candidates) {
         const fixture = fixtureFor(name, ref);
         const repo = fixture ? loadRepo(fixture, commit) : undefined;
         const dirPath = repo?.trees.get(treeSha);
@@ -210,17 +250,14 @@ export function createGithubMock() {
       const m = /^\/test\/([^/]+)\/([0-9a-f]{40})\/(.+)$/.exec(url.pathname);
       if (!m) return new Response("not found", { status: 404 });
       const [, name, commit, path] = m;
-      const refs = VARIANTS[name] ? Object.keys(VARIANTS[name]) : ["main"];
-      for (const ref of refs) {
-        if (sha(`${name}@${ref}`) !== commit) continue;
-        const fixture = fixtureFor(name, ref);
-        const repo = fixture ? loadRepo(fixture, commit) : undefined;
-        const body = repo?.files.get(decodeURIComponent(path));
-        if (body)
-          return new Response(new Uint8Array(body), {
-            headers: { "content-type": "text/plain" }
-          });
-      }
+      const hit = matchCommit(name, commit);
+      const fixture = hit ? fixtureFor(name, hit.ref) : undefined;
+      const repo = fixture && hit ? loadRepo(fixture, hit.commit) : undefined;
+      const body = repo?.files.get(decodeURIComponent(path));
+      if (body)
+        return new Response(new Uint8Array(body), {
+          headers: { "content-type": "text/plain" }
+        });
       return new Response("not found", { status: 404 });
     }
 

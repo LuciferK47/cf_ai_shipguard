@@ -31,6 +31,7 @@ import {
   startedMessage
 } from "./chat/messages";
 import { buildChatSystem } from "./chat/prompt";
+import { createGithubClient, GithubError } from "./github/client";
 import { parseGithubUrl, targetKey, targetUrl } from "./github/target";
 import {
   MAX_AUDITS_PER_HOUR,
@@ -38,7 +39,8 @@ import {
   MAX_PERSISTED_MESSAGES,
   MAX_RECENT_IN_STATE,
   MODEL_ID,
-  STALE_AUDIT_MS
+  STALE_AUDIT_MS,
+  WATCH_CRON
 } from "./limits";
 import { log } from "./log";
 import type { Db, SqlRunner } from "./memory/db";
@@ -552,5 +554,75 @@ export class ShipGuardAgent extends AIChatAgent<Env, ShipGuardState> {
   async refresh(): Promise<void> {
     await this.reconcileStale();
     this.syncState();
+  }
+
+  // ---------------------------------------------------------------- watching
+
+  /**
+   * Watch the active project: every six hours the agent compares the
+   * repository's current commit with the latest audit and starts a new audit
+   * only if it changed. An unchanged repository costs two GitHub calls and no
+   * model call.
+   */
+  @callable()
+  async setWatch(enabled: boolean): Promise<{ ok: boolean; error?: string }> {
+    if (typeof enabled !== "boolean")
+      return { ok: false, error: "Invalid request." };
+    const target = this.state.activeTarget;
+    if (enabled) {
+      if (!target)
+        return { ok: false, error: "Audit a project first, then watch it." };
+      // Cron schedules are idempotent: enabling twice keeps one schedule.
+      await this.schedule(WATCH_CRON, "watchTick");
+      this.setState({ ...this.state, watch: { target, enabled: true } });
+    } else {
+      for (const s of this.getSchedules()) {
+        if (s.callback === "watchTick") await this.cancelSchedule(s.id);
+      }
+      this.setState({ ...this.state, watch: undefined });
+    }
+    return { ok: true };
+  }
+
+  /** Runs on the schedule. Public so it can be invoked by the scheduler and by tests. */
+  async watchTick(): Promise<void> {
+    const watch = this.state.watch;
+    if (!watch?.enabled) return;
+    const note = (
+      lastResult: NonNullable<ShipGuardState["watch"]>["lastResult"]
+    ) =>
+      this.setState({
+        ...this.state,
+        watch: { ...watch, lastCheckedAt: new Date().toISOString(), lastResult }
+      });
+
+    await this.reconcileStale();
+    if (getRunningAudits(this.db).length > 0) return note("busy");
+
+    try {
+      const github = createGithubClient({ token: this.env.GITHUB_TOKEN });
+      const { owner, repo } = watch.target;
+      const info = await github.getRepo(owner, repo);
+      const sha = await github.getCommitSha(
+        owner,
+        repo,
+        watch.target.ref ?? info.defaultBranch
+      );
+      const latest = latestCompleteAudit(this.db, targetKey(watch.target));
+      if (latest?.sha === sha) return note("unchanged");
+
+      const started = await this.beginAudit(targetUrl(watch.target));
+      if (!started.ok) return note("error");
+      await this.ensureAssistantMessage(
+        `audit-watch-${started.auditId}`,
+        `A new commit (\`${sha.slice(0, 7)}\`) was found on **${owner}/${repo}**, so I started an audit automatically.`
+      );
+      note("audit-started");
+    } catch (err) {
+      log("watch.error", {
+        message: err instanceof GithubError ? err.message : String(err)
+      });
+      note("error");
+    }
   }
 }

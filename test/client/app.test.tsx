@@ -437,3 +437,42 @@ describe("conversation", () => {
     ).toBe(true);
   });
 });
+
+describe("watching a project", () => {
+  it("turns watching on through the agent and shows the last check", async () => {
+    hooks.results.setWatch = { ok: true };
+    const d = detail();
+    hooks.results.getAudit = d;
+    await connect(
+      state({
+        activeTarget: TARGET,
+        recent: [summaryOf(d)],
+        watch: {
+          target: TARGET,
+          enabled: true,
+          lastCheckedAt: new Date().toISOString(),
+          lastResult: "unchanged"
+        }
+      })
+    );
+    const box = screen.getByLabelText(
+      /Watch for new commits/
+    ) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    expect(screen.getByText(/no new commits/)).toBeTruthy();
+    fireEvent.click(box);
+    await waitFor(() =>
+      expect(hooks.calls.find((c) => c.method === "setWatch")?.args).toEqual([
+        false
+      ])
+    );
+  });
+
+  it("is unavailable until a project has been audited", async () => {
+    await connect();
+    expect(
+      (screen.getByLabelText(/Watch for new commits/) as HTMLInputElement)
+        .disabled
+    ).toBe(true);
+  });
+});

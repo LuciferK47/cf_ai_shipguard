@@ -83,6 +83,9 @@ export const MAX_AUDITS_PER_HOUR = 10;
 /** A running audit older than this is reconciled against the workflow status. */
 export const STALE_AUDIT_MS = 2 * 60 * 1000;
 
+/** How often a watched project is checked for a new commit (every six hours). */
+export const WATCH_CRON = "0 */6 * * *";
+
 /** Analysis cache time to live, seconds. */
 export const ANALYSIS_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 

@@ -135,3 +135,16 @@ export async function resetCache(): Promise<void> {
 export async function resetAll(): Promise<void> {
   await Promise.all([resetGithubCalls(), resetAi(), resetCache()]);
 }
+
+/** Make (or stop making) the mock GitHub answer 502 for a repository. */
+export async function setGithubDown(
+  repo: string,
+  down: boolean
+): Promise<void> {
+  await fetch(`https://mock.local/__fail?repo=${repo}&on=${down ? 1 : 0}`);
+}
+
+/** Simulate a push to a mock repository: its HEAD gets a new commit. */
+export async function pushTo(repo: string): Promise<void> {
+  await fetch(`https://mock.local/__bump?repo=${repo}`);
+}

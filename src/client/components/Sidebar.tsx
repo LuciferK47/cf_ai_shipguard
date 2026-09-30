@@ -13,6 +13,7 @@ interface Props {
   running: boolean;
   onSelect: (id: string) => void;
   onStart: (url: string) => Promise<StartResult>;
+  onWatch: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
 }
 
 function statusBadge(a: AuditSummary) {
@@ -28,11 +29,13 @@ export function Sidebar({
   connected,
   running,
   onSelect,
-  onStart
+  onStart,
+  onWatch
 }: Props) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const [watchError, setWatchError] = useState<string | undefined>();
 
   const submit = async (value: string) => {
     setBusy(true);
@@ -102,6 +105,52 @@ export function Sidebar({
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="section">
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <input
+            id="watch-toggle"
+            aria-describedby="watch-hint"
+            type="checkbox"
+            checked={state.watch?.enabled === true}
+            disabled={!connected || state.activeTarget === undefined}
+            onChange={(e) => {
+              setWatchError(undefined);
+              void onWatch(e.target.checked).then((r) => {
+                if (!r.ok)
+                  setWatchError(r.error ?? "Could not change watching.");
+              });
+            }}
+          />
+          <span>
+            <label htmlFor="watch-toggle" style={{ fontWeight: 700 }}>
+              Watch for new commits
+            </label>
+            <span
+              id="watch-hint"
+              className="hint"
+              style={{ display: "block", margin: 0 }}
+            >
+              Checks every 6 hours and audits again only if the repository
+              changed.
+              {state.watch?.lastCheckedAt &&
+                ` Last checked ${relativeTime(state.watch.lastCheckedAt)}: ${
+                  {
+                    unchanged: "no new commits",
+                    "audit-started": "new commit, audit started",
+                    busy: "an audit was running",
+                    error: "could not reach GitHub"
+                  }[state.watch.lastResult ?? "unchanged"]
+                }.`}
+            </span>
+          </span>
+        </div>
+        {watchError && (
+          <p className="error-text" role="alert">
+            {watchError}
+          </p>
+        )}
       </div>
 
       <div className="section">
