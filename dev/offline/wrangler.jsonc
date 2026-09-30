@@ -1,0 +1,30 @@
+{
+  // Offline development: identical to the root wrangler.jsonc except that the
+  // Workers AI binding is replaced by a small local stand-in (dev/offline/ai),
+  // so the app runs without a Cloudflare login. GitHub access and every
+  // deterministic rule are real; only the language model is simulated.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cf-ai-shipguard-offline",
+  "main": "../../src/server/index.ts",
+  "compatibility_date": "2026-06-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "services": [{ "binding": "AI", "service": "shipguard-offline-ai" }],
+  "kv_namespaces": [{ "binding": "ANALYSIS_CACHE" }],
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/agents/*", "/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ShipGuardAgent", "class_name": "ShipGuardAgent" }]
+  },
+  "exports": {
+    "ShipGuardAgent": { "type": "durable-object", "storage": "sqlite" }
+  },
+  "workflows": [
+    {
+      "name": "shipguard-audit",
+      "binding": "AUDIT_WORKFLOW",
+      "class_name": "AuditWorkflow"
+    }
+  ]
+}

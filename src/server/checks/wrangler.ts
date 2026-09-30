@@ -29,10 +29,25 @@ export const NON_INHERITABLE_KEYS = [
 /** Node.js APIs are on by default from this compatibility date. */
 export const NODEJS_COMPAT_DEFAULT_DATE = "2026-08-04";
 
+const CONFIG_NAMES = ["wrangler.jsonc", "wrangler.json", "wrangler.toml"];
+
+/** Wrangler config files that exist in the tree at the project directory. */
+function configPathsInTree(ctx: {
+  base: string;
+  paths: ReadonlySet<string>;
+}): string[] {
+  return CONFIG_NAMES.map((n) =>
+    ctx.base === "" ? n : `${ctx.base}/${n}`
+  ).filter((p) => ctx.paths.has(p));
+}
+
 export const configNotFound: Rule = {
   id: "CF_CONFIG_NOT_FOUND",
   run(ctx) {
     if (ctx.wranglerConfigs.length > 0) return [];
+    // A config that is in the tree but could not be downloaded is not "missing":
+    // saying so would be false. CF_CONFIG_UNREADABLE reports that case.
+    if (configPathsInTree(ctx).length > 0) return [];
     const hasWranglerDep = ctx.pkg?.deps.wrangler !== undefined;
     const where = ctx.base === "" ? "the repository root" : `\`${ctx.base}\``;
     const others =
@@ -62,6 +77,31 @@ export const configNotFound: Rule = {
         docsUrl: DOCS.wrangler
       })
     ];
+  }
+};
+
+export const configUnreadable: Rule = {
+  id: "CF_CONFIG_UNREADABLE",
+  run(ctx) {
+    return configPathsInTree(ctx)
+      .filter((path) => !ctx.files.has(path))
+      .map((path) =>
+        ruleFinding({
+          ruleId: "CF_CONFIG_UNREADABLE",
+          subject: path,
+          severity: "medium",
+          confidence: 0.95,
+          category: "audit-coverage",
+          title: `\`${path}\` exists but could not be read`,
+          explanation: `The file is in the repository, but ShipGuard could not download it${
+            ctx.unread[path] ? ` (${ctx.unread[path]})` : ""
+          }. Every configuration-dependent check was skipped, so this audit is incomplete and an empty result would not mean the configuration is fine.`,
+          recommendation:
+            "Run the audit again. If it keeps failing, GitHub may be limiting requests.",
+          evidence: [{ path }],
+          docsUrl: DOCS.wrangler
+        })
+      );
   }
 };
 

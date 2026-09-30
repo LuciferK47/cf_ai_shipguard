@@ -15,6 +15,8 @@ export interface CheckContext {
   paths: ReadonlySet<string>;
   /** False when the index is incomplete, so "file is missing" claims are unsafe. */
   pathsComplete: boolean;
+  /** Files that were selected but could not be downloaded, with the reason. */
+  unread: Readonly<Record<string, string>>;
   /** Secret-bearing files that exist but were deliberately not downloaded. */
   neverFetched: readonly string[];
   otherProjects: readonly string[];

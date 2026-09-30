@@ -173,3 +173,40 @@ describe("specific findings", () => {
     );
   });
 });
+
+describe("a file that could not be downloaded is not reported as missing", () => {
+  it("says the config exists but could not be read, instead of 'not found'", () => {
+    const fx = loadFixture("healthy-worker", { unread: ["wrangler.jsonc"] });
+    const findings = runChecks(fx.ctx).findings;
+    const ids = findings.map((f) => f.ruleId);
+    expect(ids).toContain("CF_CONFIG_UNREADABLE");
+    expect(ids).not.toContain("CF_CONFIG_NOT_FOUND");
+    const f = findings.find((x) => x.ruleId === "CF_CONFIG_UNREADABLE")!;
+    expect(f.severity).toBe("medium");
+    expect(f.explanation).toContain("GitHub did not answer in time");
+    expect(f.explanation).toContain("audit is incomplete");
+    expect(f.evidence).toEqual([{ path: "wrangler.jsonc" }]);
+  });
+
+  it("skips every configuration-dependent rule rather than guessing", () => {
+    const fx = loadFixture("broken-do-migration", {
+      unread: ["wrangler.jsonc"]
+    });
+    const ids = runChecks(fx.ctx).findings.map((f) => f.ruleId);
+    expect(ids).toEqual(["CF_CONFIG_UNREADABLE"]);
+  });
+
+  it("still says 'not found' when the tree really has no config", () => {
+    const fx = loadFixture("plain-node-project");
+    expect(runChecks(fx.ctx).findings.map((f) => f.ruleId)).toEqual([
+      "CF_CONFIG_NOT_FOUND"
+    ]);
+  });
+
+  it("does not report a healthy, readable config as unreadable", () => {
+    const fx = loadFixture("healthy-worker");
+    expect(runChecks(fx.ctx).findings.map((f) => f.ruleId)).not.toContain(
+      "CF_CONFIG_UNREADABLE"
+    );
+  });
+});

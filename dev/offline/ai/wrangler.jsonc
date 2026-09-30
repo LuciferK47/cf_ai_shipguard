@@ -1,0 +1,6 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "shipguard-offline-ai",
+  "main": "index.ts",
+  "compatibility_date": "2026-06-11"
+}

@@ -14,6 +14,8 @@ export interface ContextInput {
   otherProjects: readonly string[];
   /** Fetchable source files under the base, whether or not they were fetched. */
   sourceFileCount: number;
+  /** Selected files that could not be downloaded (path to reason). */
+  unread?: Readonly<Record<string, string>>;
   /** Output of `scanFiles`, computed in its own step. */
   scan: ScanResult;
 }
@@ -42,6 +44,7 @@ export function buildContext(input: ContextInput): CheckContext {
     files,
     paths: new Set(input.paths),
     pathsComplete: input.pathsComplete,
+    unread: input.unread ?? {},
     neverFetched: input.neverFetched,
     otherProjects: input.otherProjects,
     wranglerConfigs,

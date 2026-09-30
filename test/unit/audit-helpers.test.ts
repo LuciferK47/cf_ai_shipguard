@@ -7,7 +7,10 @@ import {
   type KvLike
 } from "../../src/server/audit/cache";
 import { decodeFailure, encodeFailure } from "../../src/server/audit/errors";
-import { fetchFiles } from "../../src/server/audit/fetch";
+import {
+  MAX_TRANSIENT_RETRIES,
+  fetchFiles
+} from "../../src/server/audit/fetch";
 import { buildManifest } from "../../src/server/audit/manifest";
 import {
   derivePlan,
@@ -438,5 +441,85 @@ describe("analysis cache", () => {
     await expect(
       writeCachedAnalysis(undefined, "k", analysis)
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("fetchFiles: transient failures", () => {
+  const transient = () =>
+    new GithubError("GITHUB_UNAVAILABLE", "GitHub did not answer in time.", {
+      retryable: true
+    });
+
+  it("retries a timed-out file once and keeps the result", async () => {
+    const attempts = new Map<string, number>();
+    const c = client(async (_o, _r, _s, path) => {
+      attempts.set(path, (attempts.get(path) ?? 0) + 1);
+      if (path === "flaky.ts" && attempts.get(path) === 1) throw transient();
+      return { text: `ok ${path}`, bytes: 5, truncated: false };
+    });
+    const { files } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("a.ts"), pick("flaky.ts")],
+      1000
+    );
+    expect(files.map((f) => f.text)).toEqual(["ok a.ts", "ok flaky.ts"]);
+    expect(attempts.get("flaky.ts")).toBe(2);
+    expect(attempts.get("a.ts")).toBe(1);
+  });
+
+  it("gives up after one retry and records the reason", async () => {
+    let calls = 0;
+    const c = client(async () => {
+      calls++;
+      throw transient();
+    });
+    const { files } = await fetchFiles(c, "o", "r", SHA, [pick("a.ts")], 1000);
+    expect(calls).toBe(2);
+    expect(files[0]).toMatchObject({
+      error: "GitHub did not answer in time.",
+      chars: 0
+    });
+  });
+
+  it("does not retry a file that is simply missing", async () => {
+    let calls = 0;
+    const c = client(async () => {
+      calls++;
+      throw new GithubError("NOT_FOUND", "The file was not found.");
+    });
+    await fetchFiles(c, "o", "r", SHA, [pick("a.ts")], 1000);
+    expect(calls).toBe(1);
+  });
+
+  it("does not retry after a rate limit", async () => {
+    let calls = 0;
+    const c = client(async () => {
+      calls++;
+      throw new GithubError("RATE_LIMITED", "limit");
+    });
+    const { rateLimited } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("a.ts"), pick("b.ts")],
+      1000
+    );
+    expect(calls).toBe(2);
+    expect(rateLimited?.code).toBe("RATE_LIMITED");
+  });
+
+  it("caps how many failures are retried, to protect the subrequest budget", async () => {
+    let calls = 0;
+    const c = client(async () => {
+      calls++;
+      throw transient();
+    });
+    const picks = Array.from({ length: 12 }, (_, i) => pick(`f${i}.ts`));
+    await fetchFiles(c, "o", "r", SHA, picks, 100000);
+    expect(calls).toBe(12 + MAX_TRANSIENT_RETRIES);
   });
 });

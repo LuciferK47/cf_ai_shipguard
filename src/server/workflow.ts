@@ -35,7 +35,7 @@ import { buildInventory, type TreeInventory } from "./ingest/select";
 import { MAX_TOTAL_CHARS, MODEL_ID } from "./limits";
 import { log } from "./log";
 import { countBySeverity } from "./memory/store";
-import type { AiStatus, StageId } from "../shared/types";
+import type { AiStatus, StageId, StageStatus } from "../shared/types";
 
 // The audit, as a durable Cloudflare Workflow.
 //
@@ -95,11 +95,12 @@ export class AuditWorkflow extends AgentWorkflow<
   private async progress(
     stage: StageId,
     detail: string,
-    startedAt: number
+    startedAt: number,
+    status: StageStatus = "done"
   ): Promise<void> {
     await this.reportProgress({
       stage,
-      status: "done",
+      status,
       detail,
       ms: Date.now() - startedAt
     });
@@ -200,12 +201,15 @@ export class AuditWorkflow extends AgentWorkflow<
           );
           if (out.rateLimited) throw asWorkflowError(out.rateLimited);
           const ok = out.files.filter((f) => f.text !== undefined).length;
+          const total = inventory.configFiles.length;
+          // A stage that read nothing it needed is shown as failed, not as done.
           await this.progress(
             "config",
-            inventory.configFiles.length === 0
+            total === 0
               ? "no configuration files found"
-              : `${ok} of ${inventory.configFiles.length} configuration files fetched`,
-            s
+              : `${ok} of ${total} configuration files fetched${ok < total ? " (some could not be read)" : ""}`,
+            s,
+            total > 0 && ok === 0 ? "failed" : "done"
           );
           return out.files;
         }
@@ -235,7 +239,8 @@ export class AuditWorkflow extends AgentWorkflow<
           await this.progress(
             "sources",
             `${ok} of ${inventory.sourceFileCount} source files fetched (${picks.length} selected)`,
-            s
+            s,
+            picks.length > 0 && ok === 0 ? "failed" : "done"
           );
           return out.files;
         }
@@ -269,6 +274,9 @@ export class AuditWorkflow extends AgentWorkflow<
           neverFetched: inventory.neverFetched,
           otherProjects: inventory.otherProjects,
           sourceFileCount: inventory.sourceFileCount,
+          unread: Object.fromEntries(
+            fetched.flatMap((f) => (f.error ? [[f.path, f.error]] : []))
+          ),
           scan
         });
         const result = runChecks(ctx);

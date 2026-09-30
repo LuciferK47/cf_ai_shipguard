@@ -58,7 +58,10 @@ function substitute(text: string): string {
 }
 
 /** Load a fixture exactly the way the workflow would ingest a repository. */
-export function loadFixture(name: string): LoadedFixture {
+export function loadFixture(
+  name: string,
+  opts: { unread?: readonly string[] } = {}
+): LoadedFixture {
   const dir = join(FIXTURE_ROOT, name);
   const entries: TreeEntry[] = walk(dir)
     .map((full) => ({ full, path: relative(dir, full).split(sep).join("/") }))
@@ -73,10 +76,16 @@ export function loadFixture(name: string): LoadedFixture {
   const read = (path: string) =>
     substitute(readFileSync(join(dir, path), "utf8"));
 
+  const unread: Record<string, string> = {};
   const files = new Map<string, string>();
-  for (const c of inventory.configFiles) files.set(c.path, read(c.path));
+  const fetchIfReadable = (path: string) => {
+    if (opts.unread?.includes(path))
+      unread[path] = "GitHub did not answer in time.";
+    else files.set(path, read(path));
+  };
+  for (const c of inventory.configFiles) fetchIfReadable(c.path);
   for (const s of chooseSources(inventory, files, files.size))
-    files.set(s.path, read(s.path));
+    fetchIfReadable(s.path);
 
   const ctx = buildContext({
     base: inventory.base,
@@ -86,6 +95,7 @@ export function loadFixture(name: string): LoadedFixture {
     neverFetched: inventory.neverFetched,
     otherProjects: inventory.otherProjects,
     sourceFileCount: inventory.sourceFileCount,
+    unread,
     scan: scanFiles(files)
   });
 

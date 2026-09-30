@@ -14,6 +14,7 @@ import {
   compatDateMissing,
   configNotFound,
   configParseError,
+  configUnreadable,
   envNotInherited,
   mainNotFound,
   nodejsCompatMissing,
@@ -22,6 +23,7 @@ import {
 
 export const RULES: readonly Rule[] = [
   configNotFound,
+  configUnreadable,
   configParseError,
   compatDateMissing,
   mainNotFound,

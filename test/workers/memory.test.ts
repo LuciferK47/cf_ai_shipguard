@@ -4,21 +4,37 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ShipGuardAgent } from "../../src/server/agent";
 import type { UIMessage } from "ai";
-import { aiRequests, inAgent, newAgent, readChatText, repoUrl, resetAll, runAudit } from "./helpers";
+import {
+  aiRequests,
+  inAgent,
+  newAgent,
+  readChatText,
+  repoUrl,
+  resetAll,
+  runAudit
+} from "./helpers";
 
 beforeEach(resetAll);
 
-const userMessage = (text: string): UIMessage => ({ id: crypto.randomUUID(), role: "user", parts: [{ type: "text", text }] });
+const userMessage = (text: string): UIMessage => ({
+  id: crypto.randomUUID(),
+  role: "user",
+  parts: [{ type: "text", text }]
+});
 
 /** Send a chat message straight to the agent's handler and return the streamed reply text. */
-async function say(agent: Awaited<ReturnType<typeof newAgent>>, text: string): Promise<string> {
+async function say(
+  agent: Awaited<ReturnType<typeof newAgent>>,
+  text: string
+): Promise<string> {
   return inAgent(agent, async (a) => {
     a.messages = [...a.messages, userMessage(text)];
     return readChatText(await a.onChatMessage(undefined));
   });
 }
 
-const text = (m: UIMessage) => m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+const text = (m: UIMessage) =>
+  m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 
 describe("memory across audits: the reviewer demo", () => {
   it("remembers the first audit, sees the fix in the second, and answers from stored data", async () => {
@@ -28,7 +44,9 @@ describe("memory across audits: the reviewer demo", () => {
     const before = await runAudit(agent, repoUrl("flipflop", "broken"));
     expect(before.status).toBe("complete");
     expect(before.target.ref).toBe("broken");
-    const doFinding = before.findings.find((f) => f.ruleId === "CF_DO_NOT_DECLARED");
+    const doFinding = before.findings.find(
+      (f) => f.ruleId === "CF_DO_NOT_DECLARED"
+    );
     expect(doFinding?.displayId).toBeDefined();
     expect(before.previousAuditId).toBeUndefined();
 
@@ -38,7 +56,9 @@ describe("memory across audits: the reviewer demo", () => {
     expect(after.previousAuditId).toBe(before.id);
     expect(after.sha).not.toBe(before.sha);
     expect(after.findings).toEqual([]);
-    expect(after.resolved.map((f) => f.displayId).sort()).toEqual(before.findings.map((f) => f.displayId).sort());
+    expect(after.resolved.map((f) => f.displayId).sort()).toEqual(
+      before.findings.map((f) => f.displayId).sort()
+    );
     expect(after.changes[doFinding!.fingerprint]).toBe("resolved");
 
     // 3. The completion message reports the change.
@@ -52,9 +72,14 @@ describe("memory across audits: the reviewer demo", () => {
     const agent = await newAgent();
     const before = await runAudit(agent, repoUrl("flipflop", "broken"));
     await runAudit(agent, repoUrl("flipflop", "main"));
-    const id = before.findings.find((f) => f.ruleId === "CF_DO_NOT_DECLARED")!.displayId!;
+    const id = before.findings.find(
+      (f) => f.ruleId === "CF_DO_NOT_DECLARED"
+    )!.displayId!;
 
-    const reply = await say(agent, `Did we fix ${id} from the previous investigation?`);
+    const reply = await say(
+      agent,
+      `Did we fix ${id} from the previous investigation?`
+    );
     expect(reply).toContain("Here is what I found in memory."); // the mock model's answer
 
     // What matters is what the model was given: the stored history, with the fix.
@@ -75,7 +100,10 @@ describe("memory across audits: the reviewer demo", () => {
     await runAudit(agent, repoUrl("flipflop", "broken"));
     await runAudit(agent, repoUrl("flipflop", "main"));
     await say(agent, "What migration issue did you find earlier?");
-    const system = (await aiRequests()).filter((r) => r.stream).at(-1)!.messages.find((m) => m.role === "system")!.content;
+    const system = (await aiRequests())
+      .filter((r) => r.stream)
+      .at(-1)!
+      .messages.find((m) => m.role === "system")!.content;
     expect(system).toMatch(/DETAIL F-00\d/);
     expect(system).toContain("migration");
   });
@@ -84,15 +112,22 @@ describe("memory across audits: the reviewer demo", () => {
     const agent = await newAgent();
     const first = await runAudit(agent, repoUrl("broken-do-migration"));
     const second = await runAudit(agent, repoUrl("broken-do-migration"));
-    expect(second.findings.map((f) => [f.fingerprint, f.displayId])).toEqual(first.findings.map((f) => [f.fingerprint, f.displayId]));
-    expect(Object.values(second.changes).every((c) => c === "persisting")).toBe(true);
+    expect(second.findings.map((f) => [f.fingerprint, f.displayId])).toEqual(
+      first.findings.map((f) => [f.fingerprint, f.displayId])
+    );
+    expect(Object.values(second.changes).every((c) => c === "persisting")).toBe(
+      true
+    );
     expect(second.resolved).toEqual([]);
   });
 
   it("says plainly that it knows nothing when nothing was audited", async () => {
     const agent = await newAgent();
     await say(agent, "What did you find earlier?");
-    const system = (await aiRequests()).filter((r) => r.stream).at(-1)!.messages.find((m) => m.role === "system")!.content;
+    const system = (await aiRequests())
+      .filter((r) => r.stream)
+      .at(-1)!
+      .messages.find((m) => m.role === "system")!.content;
     expect(system).toContain("has not completed any audit");
     expect(system).not.toContain("DETAIL");
   });
@@ -102,19 +137,37 @@ describe("persistence: the investigation survives a disconnect", () => {
   it("keeps audits, findings and the conversation after the Durable Object is evicted", async () => {
     const agent = await newAgent();
     const audit = await runAudit(agent, repoUrl("broken-do-migration"));
-    const before = await inAgent(agent, (a) => ({ ids: a.messages.map((m) => m.id), recent: a.state.recent.map((r) => r.id) }));
+    const before = await inAgent(agent, (a) => ({
+      ids: a.messages.map((m) => m.id),
+      recent: a.state.recent.map((r) => r.id)
+    }));
 
     await evictDurableObject(agent as unknown as DurableObjectStub);
 
     // A "reconnected" client addresses the same workspace and finds everything.
-    const again = await getAgentByName<Env, ShipGuardAgent>(env.ShipGuardAgent, agent.workspaceId);
+    const again = await getAgentByName<Env, ShipGuardAgent>(
+      env.ShipGuardAgent,
+      agent.workspaceId
+    );
     const restored = await again.getAudit(audit.id);
     expect(restored?.status).toBe("complete");
-    expect(restored?.findings.map((f) => f.displayId)).toEqual(audit.findings.map((f) => f.displayId));
-    const after = await inAgent(Object.assign(again, { workspaceId: agent.workspaceId }), (a) => ({ ids: a.messages.map((m) => m.id), recent: a.state.recent.map((r) => r.id), active: a.state.activeTarget }));
+    expect(restored?.findings.map((f) => f.displayId)).toEqual(
+      audit.findings.map((f) => f.displayId)
+    );
+    const after = await inAgent(
+      Object.assign(again, { workspaceId: agent.workspaceId }),
+      (a) => ({
+        ids: a.messages.map((m) => m.id),
+        recent: a.state.recent.map((r) => r.id),
+        active: a.state.activeTarget
+      })
+    );
     expect(after.ids).toEqual(before.ids);
     expect(after.recent).toEqual(before.recent);
-    expect(after.active).toMatchObject({ owner: "test", repo: "broken-do-migration" });
+    expect(after.active).toMatchObject({
+      owner: "test",
+      repo: "broken-do-migration"
+    });
   });
 
   it("gives each workspace its own private memory", async () => {
@@ -133,13 +186,19 @@ describe("dispositions (decisions the developer makes)", () => {
     const first = await runAudit(agent, repoUrl("broken-do-migration"));
     const dup = first.findings.find((f) => f.ruleId === "CF_DO_DUPLICATE_TAG")!;
 
-    const reply = await say(agent, `dismiss ${dup.displayId} because it is intentional`);
+    const reply = await say(
+      agent,
+      `dismiss ${dup.displayId} because it is intentional`
+    );
     expect(reply).toContain(`Marked **${dup.displayId}** as dismissed`);
     // No model call is made for a command.
     expect((await aiRequests()).filter((r) => r.stream)).toHaveLength(0);
 
     const second = await runAudit(agent, repoUrl("broken-do-migration"));
-    expect(second.dispositions[dup.fingerprint]).toEqual({ status: "dismissed", note: "it is intentional" });
+    expect(second.dispositions[dup.fingerprint]).toEqual({
+      status: "dismissed",
+      note: "it is intentional"
+    });
   });
 
   it("refuses an unknown finding id", async () => {
@@ -155,7 +214,11 @@ describe("dispositions (decisions the developer makes)", () => {
     expect(await agent.setFindingStatus(id, "accepted", "will fix")).toBe(true);
     expect(await agent.setFindingStatus(id, "bogus" as never)).toBe(false);
     expect(await agent.setFindingStatus("F-099", "accepted")).toBe(false);
-    expect((await agent.getAudit(audit.id))?.dispositions[audit.findings[0].fingerprint]).toEqual({ status: "accepted", note: "will fix" });
+    expect(
+      (await agent.getAudit(audit.id))?.dispositions[
+        audit.findings[0].fingerprint
+      ]
+    ).toEqual({ status: "accepted", note: "will fix" });
   });
 });
 
@@ -186,14 +249,19 @@ describe("idempotent persistence", () => {
     expect(after?.summary).toBe(original?.summary);
     expect(after?.sha).toBe(original?.sha);
     const messages = await inAgent(agent, (a) => a.messages);
-    expect(messages.filter((m) => m.id === `audit-complete-${audit.id}`)).toHaveLength(1);
+    expect(
+      messages.filter((m) => m.id === `audit-complete-${audit.id}`)
+    ).toHaveLength(1);
   });
 });
 
 describe("chat routing without the model", () => {
   it("starts an audit from a pasted URL and replies deterministically", async () => {
     const agent = await newAgent();
-    const reply = await say(agent, `Analyze ${repoUrl("healthy-worker")} before I deploy it`);
+    const reply = await say(
+      agent,
+      `Analyze ${repoUrl("healthy-worker")} before I deploy it`
+    );
     expect(reply).toContain("Started audit");
     expect(reply).toContain("test/healthy-worker");
     expect((await aiRequests()).filter((r) => r.stream)).toHaveLength(0);
@@ -217,7 +285,10 @@ describe("chat routing without the model", () => {
     const agent = await newAgent();
     await say(agent, "re-audit");
     // Without an active project this is just a question, answered from (empty) memory.
-    const system = (await aiRequests()).filter((r) => r.stream).at(-1)!.messages.find((m) => m.role === "system")!.content;
+    const system = (await aiRequests())
+      .filter((r) => r.stream)
+      .at(-1)!
+      .messages.find((m) => m.role === "system")!.content;
     expect(system).toContain("has not completed any audit");
   });
 
