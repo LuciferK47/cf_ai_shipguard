@@ -52,10 +52,14 @@ export default class OfflineAi extends WorkerEntrypoint {
     if (inputs.stream) {
       // Chat: quote what is stored in memory rather than pretending to reason about it.
       const system = content(inputs, "system");
-      const memory = system
-        .slice(system.indexOf("MEMORY"))
+      // The digest starts at a line beginning "MEMORY"; the instructions above it
+      // also mention the word, so anchor on the start of a line.
+      const start = system.search(/^MEMORY[ (:]/m);
+      const memory = (start >= 0 ? system.slice(start) : "")
         .split("\n")
-        .filter((l) => /^(- |DETAIL|Change since|Coverage)/.test(l))
+        .filter((l) =>
+          /^(- |DETAIL|Change since|Coverage|Active project)/.test(l)
+        )
         .slice(0, 14);
       const last =
         inputs.messages?.filter((m) => m.role === "user").at(-1)?.content ?? "";

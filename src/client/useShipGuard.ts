@@ -24,7 +24,10 @@ export function useShipGuard(workspaceId: string) {
   const [state, setState] = useState<ShipGuardState>(EMPTY);
   const [connected, setConnected] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  const [detail, setDetail] = useState<AuditDetail | undefined>();
+  // The loaded audit remembers which id it belongs to, so a stale one is never shown.
+  const [loaded, setLoaded] = useState<
+    { id: string; detail?: AuditDetail } | undefined
+  >();
   const [detailError, setDetailError] = useState<string | undefined>();
   const [reload, setReload] = useState(0);
   const lastRunning = useRef<string | undefined>(undefined);
@@ -54,16 +57,16 @@ export function useShipGuard(workspaceId: string) {
       : "none";
 
   useEffect(() => {
-    if (!effectiveId || !connected) {
-      setDetail(undefined);
-      return;
-    }
+    if (!effectiveId || !connected) return;
     let cancelled = false;
     agent
       .call("getAudit", [effectiveId])
       .then((d) => {
         if (cancelled) return;
-        setDetail((d as AuditDetail | null | undefined) ?? undefined);
+        setLoaded({
+          id: effectiveId,
+          detail: (d as AuditDetail | null | undefined) ?? undefined
+        });
         setDetailError(undefined);
       })
       .catch(() => {
@@ -123,6 +126,14 @@ export function useShipGuard(workspaceId: string) {
     },
     [agent]
   );
+
+  // `loaded` is undefined until the first load, so check it explicitly:
+  // `loaded?.id === effectiveId` is also true when both are undefined, which is
+  // exactly the state of a brand-new, empty workspace.
+  const detail =
+    connected && loaded !== undefined && loaded.id === effectiveId
+      ? loaded.detail
+      : undefined;
 
   const stages: StageState[] | undefined = useMemo(() => {
     if (state.running && state.running.auditId === effectiveId)

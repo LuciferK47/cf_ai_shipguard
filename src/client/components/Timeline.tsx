@@ -46,9 +46,9 @@ export function Timeline({ stages }: { stages: StageState[] }) {
   const done = stages.filter((s) => s.status === "done").length;
   return (
     <div>
-      <p className="sr-only" role="status" aria-live="polite">
+      <output className="sr-only" aria-live="polite">
         {announcement}
-      </p>
+      </output>
       <ol
         className="timeline"
         aria-label={`Audit progress, ${done} of ${stages.length} stages done`}

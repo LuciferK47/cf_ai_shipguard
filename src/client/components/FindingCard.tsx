@@ -131,11 +131,11 @@ export function FindingCard({
           </div>
 
           {change !== "resolved" && (
-            <div
+            <fieldset
               className="finding-row"
-              role="group"
-              aria-label={`Decision for ${id}`}
+              style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
             >
+              <legend className="sr-only">Decision for {id}</legend>
               <button
                 type="button"
                 className="btn btn-small"
@@ -165,7 +165,7 @@ export function FindingCard({
                   Reopen
                 </button>
               )}
-            </div>
+            </fieldset>
           )}
         </div>
       </details>

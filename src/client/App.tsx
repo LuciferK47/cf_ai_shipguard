@@ -43,11 +43,6 @@ export function App() {
 
   const anyRunning = state.running !== undefined;
 
-  // On small screens, show the investigation when an audit starts.
-  useEffect(() => {
-    if (state.running) setView("panel");
-  }, [state.running?.auditId]);
-
   return (
     <div className="app" data-view={view}>
       <Header
@@ -66,7 +61,12 @@ export function App() {
               api.setSelectedId(id);
               setView("panel");
             }}
-            onStart={api.startAudit}
+            onStart={async (url) => {
+              const res = await api.startAudit(url);
+              // On small screens, follow the audit that was just started.
+              if (res.ok) setView("panel");
+              return res;
+            }}
           />
         </aside>
 
@@ -93,7 +93,7 @@ export function App() {
         </section>
       </div>
 
-      <div className="mobile-nav" role="navigation" aria-label="Sections">
+      <nav className="mobile-nav" aria-label="Sections">
         {(
           [
             ["audits", "Audits"],
@@ -110,7 +110,7 @@ export function App() {
             {label}
           </button>
         ))}
-      </div>
+      </nav>
     </div>
   );
 }

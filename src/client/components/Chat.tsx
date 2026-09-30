@@ -33,9 +33,10 @@ export function Chat({ api, hasAudit }: Props) {
   const messages = chat.messages;
   const busy = chat.status === "submitted" || chat.status === "streaming";
 
+  const lastPartCount = messages.at(-1)?.parts.length;
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, chat.status, messages.at(-1)?.parts.length]);
+  }, [messages.length, chat.status, lastPartCount]);
 
   const send = (text: string) => {
     const t = text.trim();
@@ -103,9 +104,9 @@ export function Chat({ api, hasAudit }: Props) {
           </ol>
 
           {busy && messages.at(-1)?.role === "user" && (
-            <p className="typing" role="status">
+            <output className="typing">
               <span className="pulse">ShipGuard is thinking…</span>
-            </p>
+            </output>
           )}
           {chat.status === "error" && (
             <p className="error-text" role="alert">
@@ -121,12 +122,17 @@ export function Chat({ api, hasAudit }: Props) {
         <div className="composer-inner">
           <div style={{ flex: 1 }}>
             {hasAudit && messages.length <= 2 && (
-              <div
+              <fieldset
                 className="suggestions"
-                style={{ marginBottom: 8 }}
-                role="group"
-                aria-label="Suggested questions"
+                style={{
+                  border: 0,
+                  padding: 0,
+                  margin: 0,
+                  marginBottom: 8,
+                  minWidth: 0
+                }}
               >
+                <legend className="sr-only">Suggested questions</legend>
                 {SUGGESTIONS_AFTER_AUDIT.map((s) => (
                   <button
                     key={s}
@@ -138,7 +144,7 @@ export function Chat({ api, hasAudit }: Props) {
                     {s}
                   </button>
                 ))}
-              </div>
+              </fieldset>
             )}
             <label htmlFor="chat-input" className="sr-only">
               Message ShipGuard

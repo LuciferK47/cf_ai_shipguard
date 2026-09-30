@@ -79,7 +79,7 @@ export function Investigation({
     { id: "plan", label: "Actions" }
   ];
 
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
     const i = tabs.findIndex((t) => t.id === tab);
     let next = i;
     if (e.key === "ArrowRight") next = (i + 1) % tabs.length;
@@ -139,7 +139,7 @@ export function Investigation({
             role="tablist"
             aria-label="Investigation report"
             className="tabs"
-            onKeyDown={onKey}
+            tabIndex={-1}
           >
             {tabs.map((t) => (
               <button
@@ -155,6 +155,7 @@ export function Investigation({
                 className="tab"
                 type="button"
                 onClick={() => setTab(t.id)}
+                onKeyDown={onKey}
               >
                 {t.label}
               </button>

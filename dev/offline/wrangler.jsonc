@@ -7,7 +7,9 @@
   "name": "cf-ai-shipguard-offline",
   "main": "../../src/server/index.ts",
   "compatibility_date": "2026-06-11",
-  "compatibility_flags": ["nodejs_compat"],
+  // enable_abortsignal_rpc: the AI SDK passes an AbortSignal to the AI binding,
+  // and here that binding is an RPC service rather than the native one.
+  "compatibility_flags": ["nodejs_compat", "enable_abortsignal_rpc"],
   "services": [{ "binding": "AI", "service": "shipguard-offline-ai" }],
   "kv_namespaces": [{ "binding": "ANALYSIS_CACHE" }],
   "assets": {

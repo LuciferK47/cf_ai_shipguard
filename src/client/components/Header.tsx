@@ -48,13 +48,10 @@ export function Header({ connected, workspaceId, onNewWorkspace }: Props) {
         </span>
       </div>
       <div style={{ flex: 1 }} />
-      <span
-        role="status"
-        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-      >
+      <output style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
         <span className="status-dot" data-on={connected} aria-hidden="true" />
         <span>{connected ? "Connected" : "Reconnecting…"}</span>
-      </span>
+      </output>
       <button
         type="button"
         className="btn btn-small btn-quiet"
@@ -64,24 +61,14 @@ export function Header({ connected, workspaceId, onNewWorkspace }: Props) {
       >
         {theme === "system" ? "Auto" : theme === "light" ? "Light" : "Dark"}
       </button>
-      <details style={{ position: "relative" }}>
+      <details>
         <summary
           className="btn btn-small btn-quiet"
           style={{ listStyle: "none" }}
         >
           Workspace
         </summary>
-        <div
-          className="callout"
-          style={{
-            position: "absolute",
-            right: 0,
-            top: "110%",
-            width: 300,
-            zIndex: 20,
-            background: "var(--surface)"
-          }}
-        >
+        <div className="callout workspace-pop">
           <p style={{ margin: "0 0 6px" }}>
             Your audits and chat are saved in a private workspace identified by
             this ID. Anyone with the link to this page can see it, so treat the
