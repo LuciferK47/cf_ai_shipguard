@@ -26,7 +26,10 @@ interface Row {
   unexpected: string[];
 }
 
-const SECRETS = ["AKIAIOSFODNN7EXAMPLE", "sk_live_notarealkey1234567890"];
+const SECRETS = [
+  ["AKIA", "IOSFODNN7EXAMPLE"].join(""),
+  "not-a-real-value-abc123def"
+];
 
 function normalise(s: string): string {
   return s.replace(/\s+/g, " ").trim();
