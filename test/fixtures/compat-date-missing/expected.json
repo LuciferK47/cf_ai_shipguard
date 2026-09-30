@@ -1,0 +1,5 @@
+{
+  "note": "compatibility_date is required by Wrangler.",
+  "rules": ["CF_COMPAT_DATE_MISSING"],
+  "absent": []
+}

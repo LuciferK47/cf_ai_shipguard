@@ -21,6 +21,14 @@ export default defineConfig({
         }
       },
       {
+        // Offline evaluation scorecards. `npm run eval` runs only this project.
+        test: {
+          name: "eval",
+          include: ["evals/**/*.eval.ts"],
+          environment: "node"
+        }
+      },
+      {
         // React components, with the Agents SDK hooks replaced by fakes.
         plugins: [react()],
         test: {

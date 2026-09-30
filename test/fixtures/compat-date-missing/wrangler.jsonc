@@ -1,0 +1,4 @@
+{
+  "name": "compat-date-missing",
+  "main": "src/index.ts"
+}

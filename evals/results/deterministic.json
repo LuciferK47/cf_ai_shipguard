@@ -1,0 +1,420 @@
+{
+  "summary": {
+    "generatedAt": "2026-09-30T10:16:13.051Z",
+    "fixtures": 21,
+    "rulesInEngine": 19,
+    "rulesExercised": 19,
+    "seededIssues": 20,
+    "seededFound": 20,
+    "seededRecall": 1,
+    "cleanFixtures": 5,
+    "cleanFixturesWithFindings": 0,
+    "findingsTotal": 20,
+    "fixtureExactMatch": 21,
+    "evidence": {
+      "items": 25,
+      "pathsValid": 25,
+      "withLines": 24,
+      "linesValid": 24,
+      "excerptsConsistent": 23,
+      "excerptsSynthetic": 1
+    },
+    "plantedSecretLeaks": 0,
+    "oversizedEntries": 30002,
+    "oversizedInventoryMs": 95.7
+  },
+  "rules": [
+    {
+      "rule": "CF_AI_BINDING_MISSING",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_CLASS_NOT_EXPORTED",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_COMPAT_DATE_MISSING",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_CONFIG_NOT_FOUND",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_CONFIG_PARSE_ERROR",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_CONFIG_UNREADABLE",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_DEPLOY_SCRIPT_CONFIG_MISSING",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_DO_CONFIG_MIXED",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_DO_DELETED_BUT_BOUND",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_DO_DUPLICATE_TAG",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_DO_KV_STORAGE",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_DO_NOT_DECLARED",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_ENV_FILE_COMMITTED",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_ENV_NOT_INHERITED",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_MAIN_NOT_FOUND",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_NODEJS_COMPAT_MISSING",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_SECRET_IN_VARS",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_SECRET_PATTERN",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    {
+      "rule": "CF_TSCONFIG_DECORATORS",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1
+    }
+  ],
+  "rows": [
+    {
+      "fixture": "broken-do-migration",
+      "expected": [
+        "CF_DO_DUPLICATE_TAG",
+        "CF_DO_NOT_DECLARED"
+      ],
+      "actual": [
+        "CF_DO_DUPLICATE_TAG",
+        "CF_DO_NOT_DECLARED"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "class-not-exported",
+      "expected": [
+        "CF_CLASS_NOT_EXPORTED"
+      ],
+      "actual": [
+        "CF_CLASS_NOT_EXPORTED"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "compat-date-missing",
+      "expected": [
+        "CF_COMPAT_DATE_MISSING"
+      ],
+      "actual": [
+        "CF_COMPAT_DATE_MISSING"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "deleted-but-bound",
+      "expected": [
+        "CF_DO_DELETED_BUT_BOUND"
+      ],
+      "actual": [
+        "CF_DO_DELETED_BUT_BOUND"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "deploy-script",
+      "expected": [
+        "CF_DEPLOY_SCRIPT_CONFIG_MISSING"
+      ],
+      "actual": [
+        "CF_DEPLOY_SCRIPT_CONFIG_MISSING"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "env-not-inherited",
+      "expected": [
+        "CF_ENV_NOT_INHERITED"
+      ],
+      "actual": [
+        "CF_ENV_NOT_INHERITED"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "exposed-secret-config",
+      "expected": [
+        "CF_ENV_FILE_COMMITTED",
+        "CF_SECRET_IN_VARS",
+        "CF_SECRET_PATTERN"
+      ],
+      "actual": [
+        "CF_ENV_FILE_COMMITTED",
+        "CF_SECRET_IN_VARS",
+        "CF_SECRET_PATTERN"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "healthy-worker",
+      "expected": [],
+      "actual": [],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "healthy-worker-legacy",
+      "expected": [],
+      "actual": [],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "kv-agent",
+      "expected": [
+        "CF_DO_KV_STORAGE"
+      ],
+      "actual": [
+        "CF_DO_KV_STORAGE"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "main-not-found",
+      "expected": [
+        "CF_MAIN_NOT_FOUND"
+      ],
+      "actual": [
+        "CF_MAIN_NOT_FOUND"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "malformed-wrangler",
+      "expected": [
+        "CF_CONFIG_PARSE_ERROR"
+      ],
+      "actual": [
+        "CF_CONFIG_PARSE_ERROR"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "missing-ai-binding",
+      "expected": [
+        "CF_AI_BINDING_MISSING"
+      ],
+      "actual": [
+        "CF_AI_BINDING_MISSING"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "mixed-do-config",
+      "expected": [
+        "CF_DO_CONFIG_MIXED"
+      ],
+      "actual": [
+        "CF_DO_CONFIG_MIXED"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "monorepo",
+      "expected": [],
+      "actual": [],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "nodejs-compat-new",
+      "expected": [],
+      "actual": [],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "nodejs-compat-old",
+      "expected": [
+        "CF_NODEJS_COMPAT_MISSING"
+      ],
+      "actual": [
+        "CF_NODEJS_COMPAT_MISSING"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "plain-node-project",
+      "expected": [
+        "CF_CONFIG_NOT_FOUND"
+      ],
+      "actual": [
+        "CF_CONFIG_NOT_FOUND"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "prompt-injection",
+      "expected": [],
+      "actual": [],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "toml-config",
+      "expected": [
+        "CF_AI_BINDING_MISSING"
+      ],
+      "actual": [
+        "CF_AI_BINDING_MISSING"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    },
+    {
+      "fixture": "tsconfig-decorators",
+      "expected": [
+        "CF_TSCONFIG_DECORATORS"
+      ],
+      "actual": [
+        "CF_TSCONFIG_DECORATORS"
+      ],
+      "exact": true,
+      "missed": [],
+      "unexpected": []
+    }
+  ]
+}
