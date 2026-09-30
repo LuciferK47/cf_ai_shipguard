@@ -96,6 +96,7 @@ export type ErrorCode =
   | "RATE_LIMITED"
   | "GITHUB_UNAVAILABLE"
   | "NO_FILES"
+  | "REPO_TOO_LARGE"
   | "AI_UNAVAILABLE"
   | "AI_INVALID_OUTPUT"
   | "LIMIT_REACHED"

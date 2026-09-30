@@ -8,11 +8,22 @@
 /** Subrequests available to one workflow instance on the Free plan. */
 export const FREE_SUBREQUEST_CAP = 50;
 
-/** GitHub REST calls per audit: repository, commit SHA, tree. */
-export const GITHUB_API_CALLS = 3;
+/**
+ * GitHub REST calls per audit: repository, commit SHA and the tree, plus one
+ * call per directory level when a sub-directory is audited (at most 8).
+ */
+export const GITHUB_API_CALLS = 3 + 8;
 
 /** Raw file fetches per audit (configuration files plus source files). */
-export const MAX_FILES_FETCHED = 20;
+export const MAX_FILES_FETCHED = 16;
+
+/**
+ * Largest tree response that will be read. Parsing it must fit a Workflow
+ * step's CPU budget on the Free plan, and each entry is about 250 bytes, so
+ * this is roughly 6,000 files. Larger repositories must be audited by
+ * sub-directory.
+ */
+export const TREE_MAX_BYTES = 1_500_000;
 
 /** Workers AI calls per audit: analysis, and at most one repair attempt. */
 export const MAX_AI_CALLS = 2;

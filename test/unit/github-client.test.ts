@@ -302,3 +302,138 @@ describe("looksBinary", () => {
     expect(looksBinary("plain text")).toBe(false);
   });
 });
+
+describe("github client: sub-directory trees", () => {
+  const T1 = "1".repeat(40);
+  const T2 = "2".repeat(40);
+  const T3 = "3".repeat(40);
+
+  function treeFetch(map: Record<string, unknown>) {
+    return fakeFetch((url) => {
+      const key = Object.keys(map).find((k) => url.includes(k));
+      return key ? json(map[key]) : new Response("{}", { status: 404 });
+    });
+  }
+
+  it("descends one level at a time and only downloads the subtree recursively", async () => {
+    const { fetch, calls } = treeFetch({
+      [`/git/trees/${SHA}`]: {
+        tree: [
+          { path: "apps", type: "tree", sha: T1 },
+          { path: "big", type: "tree", sha: "9".repeat(40) }
+        ]
+      },
+      [`/git/trees/${T1}`]: { tree: [{ path: "api", type: "tree", sha: T2 }] },
+      [`/git/trees/${T2}?recursive=1`]: {
+        tree: [
+          { path: "wrangler.jsonc", type: "blob", size: 10 },
+          { path: "src/index.ts", type: "blob", size: 20 }
+        ]
+      }
+    });
+    const r = await createGithubClient({ fetch }).getTree(
+      "o",
+      "r",
+      SHA,
+      "apps/api"
+    );
+    expect(r.entries.map((e) => e.path)).toEqual([
+      "apps/api/wrangler.jsonc",
+      "apps/api/src/index.ts"
+    ]);
+    expect(r.apiCalls).toBe(3);
+    expect(
+      calls.map((c) => c.url.replace("https://api.github.com/repos/o/r", ""))
+    ).toEqual([
+      `/git/trees/${SHA}`,
+      `/git/trees/${T1}`,
+      `/git/trees/${T2}?recursive=1`
+    ]);
+  });
+
+  it("uses a single recursive call for the repository root", async () => {
+    const { fetch, calls } = treeFetch({
+      "recursive=1": { tree: [{ path: "a.ts", type: "blob" }] }
+    });
+    const r = await createGithubClient({ fetch }).getTree("o", "r", SHA);
+    expect(r.apiCalls).toBe(1);
+    expect(calls).toHaveLength(1);
+    expect(r.entries[0].path).toBe("a.ts");
+  });
+
+  it("reports a missing directory clearly", async () => {
+    const { fetch } = treeFetch({
+      [`/git/trees/${SHA}`]: { tree: [{ path: "src", type: "tree", sha: T1 }] }
+    });
+    const e = await code(
+      createGithubClient({ fetch }).getTree("o", "r", SHA, "nope")
+    );
+    expect(e.code).toBe("NOT_FOUND");
+    expect(e.message).toContain("`nope`");
+  });
+
+  it("does not follow a file with the directory's name", async () => {
+    const { fetch } = treeFetch({
+      [`/git/trees/${SHA}`]: { tree: [{ path: "docs", type: "blob", sha: T3 }] }
+    });
+    const e = await code(
+      createGithubClient({ fetch }).getTree("o", "r", SHA, "docs")
+    );
+    expect(e.code).toBe("NOT_FOUND");
+  });
+
+  it("refuses a tree larger than the byte cap and suggests a sub-directory", async () => {
+    const huge = JSON.stringify({
+      tree: Array.from({ length: 9000 }, (_, i) => ({
+        path: `src/file-number-${i}.ts`,
+        type: "blob",
+        sha: T3,
+        url: `https://api.github.com/repos/o/r/git/blobs/${T3}`
+      }))
+    });
+    expect(huge.length).toBeGreaterThan(1_500_000);
+    const { fetch } = fakeFetch(() => new Response(huge));
+    const e = await code(createGithubClient({ fetch }).getTree("o", "r", SHA));
+    expect(e.code).toBe("REPO_TOO_LARGE");
+    expect(e.retryable).toBe(false);
+    expect(e.message).toMatch(/sub-directory/);
+  });
+
+  it("does not read an oversized tree body past the cap", async () => {
+    let pulled = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled++;
+        controller.enqueue(new TextEncoder().encode("x".repeat(100_000)));
+      }
+    });
+    const { fetch } = fakeFetch(() => new Response(stream));
+    await code(createGithubClient({ fetch }).getTree("o", "r", SHA));
+    expect(pulled).toBeLessThan(30);
+  });
+
+  it("treats an unreadable tree body as a retryable GitHub problem", async () => {
+    const { fetch } = fakeFetch(() => new Response("<html>oops</html>"));
+    const e = await code(createGithubClient({ fetch }).getTree("o", "r", SHA));
+    expect(e.code).toBe("GITHUB_UNAVAILABLE");
+    expect(e.retryable).toBe(true);
+  });
+
+  it("passes through GitHub's own truncation flag", async () => {
+    const { fetch } = fakeFetch(() =>
+      json({ truncated: true, tree: [{ path: "a", type: "blob" }] })
+    );
+    expect(
+      (await createGithubClient({ fetch }).getTree("o", "r", SHA)).truncated
+    ).toBe(true);
+  });
+
+  it("rejects hostile path segments before any request", async () => {
+    const { fetch, calls } = fakeFetch(() => json({ tree: [] }));
+    const e = await code(
+      createGithubClient({ fetch }).getTree("o", "r", SHA, "a/../b")
+    );
+    expect(e.code).toBe("INVALID_URL");
+    expect(calls).toHaveLength(0);
+  });
+});

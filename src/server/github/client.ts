@@ -1,4 +1,4 @@
-import { GITHUB_TIMEOUT_MS, MAX_FILE_BYTES } from "../limits";
+import { GITHUB_TIMEOUT_MS, MAX_FILE_BYTES, TREE_MAX_BYTES } from "../limits";
 import type { ErrorCode } from "../../shared/types";
 
 // Read-only GitHub access.
@@ -71,7 +71,13 @@ export interface GithubClientOptions {
 export interface GithubClient {
   getRepo(owner: string, repo: string): Promise<RepoInfo>;
   getCommitSha(owner: string, repo: string, ref: string): Promise<string>;
-  getTree(owner: string, repo: string, sha: string): Promise<TreeResult>;
+  /** Recursive tree of the repository at a commit, or of `subpath` inside it. */
+  getTree(
+    owner: string,
+    repo: string,
+    commitSha: string,
+    subpath?: string
+  ): Promise<TreeResult & { apiCalls: number }>;
   getRaw(
     owner: string,
     repo: string,
@@ -169,6 +175,52 @@ export function createGithubClient(
     );
   }
 
+  interface RawTreeEntry {
+    path?: string;
+    type?: string;
+    size?: number;
+    sha?: string;
+  }
+
+  async function fetchTree(
+    owner: string,
+    repo: string,
+    treeSha: string,
+    recursive: boolean
+  ): Promise<{ rawEntries: RawTreeEntry[]; truncated: boolean }> {
+    const res = await request(
+      `${API}/repos/${owner}/${repo}/git/trees/${treeSha}${recursive ? "?recursive=1" : ""}`,
+      apiHeaders()
+    );
+    if (!res.ok) throw mapError(res, "The file tree");
+    // Parsing a very large tree would exceed a Free-plan step's CPU budget, so
+    // the body is read with a byte cap and oversized trees are refused.
+    const body = await readCapped(res, TREE_MAX_BYTES);
+    if (body.truncated) {
+      throw new GithubError(
+        "REPO_TOO_LARGE",
+        "This repository has too many files to list within the free-plan limits. Audit a sub-directory instead, for example https://github.com/owner/repo/tree/main/path."
+      );
+    }
+    let parsed: { tree?: RawTreeEntry[]; truncated?: boolean };
+    try {
+      parsed = JSON.parse(body.text) as typeof parsed;
+    } catch {
+      throw new GithubError(
+        "GITHUB_UNAVAILABLE",
+        "GitHub returned an unreadable tree response.",
+        { retryable: true }
+      );
+    }
+    if (!Array.isArray(parsed.tree)) {
+      throw new GithubError(
+        "GITHUB_UNAVAILABLE",
+        "GitHub returned an unexpected tree response."
+      );
+    }
+    return { rawEntries: parsed.tree, truncated: parsed.truncated === true };
+  }
+
   return {
     async getRepo(owner, repo) {
       assertSegment(owner, "owner");
@@ -225,35 +277,51 @@ export function createGithubClient(
       return sha;
     },
 
-    async getTree(owner, repo, sha) {
+    async getTree(owner, repo, commitSha, subpath = "") {
       assertSegment(owner, "owner");
       assertSegment(repo, "repository");
-      if (!SHA_RE.test(sha)) throw new GithubError("INVALID_URL", "Bad SHA.");
-      const res = await request(
-        `${API}/repos/${owner}/${repo}/git/trees/${sha}?recursive=1`,
-        apiHeaders()
-      );
-      if (!res.ok) throw mapError(res, "The file tree");
-      const body = (await res.json()) as {
-        tree?: Array<{ path?: string; type?: string; size?: number }>;
-        truncated?: boolean;
-      };
-      if (!Array.isArray(body.tree)) {
-        throw new GithubError(
-          "GITHUB_UNAVAILABLE",
-          "GitHub returned an unexpected tree response."
+      if (!SHA_RE.test(commitSha))
+        throw new GithubError("INVALID_URL", "Bad SHA.");
+
+      // Descend to the sub-directory one level at a time so that only its
+      // subtree is ever downloaded, however large the rest of the repository is.
+      let treeSha = commitSha;
+      let apiCalls = 0;
+      const segments = subpath === "" ? [] : subpath.split("/");
+      // Validate every segment before making any request.
+      for (const seg of segments) assertSegment(seg, "path segment");
+      for (const seg of segments) {
+        const level = await fetchTree(owner, repo, treeSha, false);
+        apiCalls++;
+        const next = level.rawEntries.find(
+          (e) => e.path === seg && e.type === "tree"
         );
+        if (!next?.sha) {
+          throw new GithubError(
+            "NOT_FOUND",
+            `The directory \`${subpath}\` does not exist at this ref.`
+          );
+        }
+        treeSha = next.sha;
       }
+
+      const full = await fetchTree(owner, repo, treeSha, true);
+      apiCalls++;
+      const prefix = subpath === "" ? "" : `${subpath}/`;
       const entries: TreeEntry[] = [];
-      for (const e of body.tree) {
+      for (const e of full.rawEntries) {
         if (
           typeof e.path === "string" &&
           (e.type === "blob" || e.type === "tree" || e.type === "commit")
         ) {
-          entries.push({ path: e.path, type: e.type, size: e.size });
+          entries.push({
+            path: `${prefix}${e.path}`,
+            type: e.type,
+            size: e.size
+          });
         }
       }
-      return { entries, truncated: body.truncated === true };
+      return { entries, truncated: full.truncated, apiCalls };
     },
 
     async getRaw(owner, repo, sha, path, maxBytes = MAX_FILE_BYTES) {
