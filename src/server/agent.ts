@@ -18,6 +18,7 @@ import type {
 } from "../shared/types";
 import { decodeFailure } from "./audit/errors";
 import { isStageProgress, type PersistAuditInput } from "./audit/types";
+import { withDedupedStreams } from "./ai/dedupe-stream";
 import { buildDigest } from "./chat/digest";
 import { detectIntent } from "./chat/intent";
 import {
@@ -216,7 +217,7 @@ export class ShipGuardAgent extends AIChatAgent<Env, ShipGuardState> {
     );
 
     const workersai = createWorkersAI({
-      binding: this.env.AI,
+      binding: withDedupedStreams(this.env.AI),
       ...(this.env.AI_GATEWAY_ID
         ? { gateway: { id: this.env.AI_GATEWAY_ID } }
         : {})

@@ -2,7 +2,7 @@
 
 **An AI deployment preflight and debugging agent for Cloudflare Workers.** Give it a public GitHub repository; it runs a durable, staged audit, backs every finding with evidence from the actual files, remembers what it found, and answers follow-up questions from what it stored.
 
-**Live demo:** LIVE_URL_PLACEHOLDER
+**Live demo:** https://cf-ai-shipguard.cf-ai-shipguard.workers.dev
 
 Built for Cloudflare's AI application assignment. The repository name follows the required `cf_ai_` prefix, [PROMPTS.md](./PROMPTS.md) holds the AI prompts used, and everything here was written for this submission.
 
@@ -135,7 +135,7 @@ The Free plan allows 10,000 Workers AI neurons per day (about 14 large audits) a
 
 ```bash
 npm run check      # format check, lint, typecheck
-npm test           # 610 tests across three projects
+npm test           # 615 tests across three projects
 npm run eval       # deterministic scorecard  → evals/results/
 npm run build
 ```

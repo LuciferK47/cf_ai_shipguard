@@ -165,4 +165,9 @@ Everything below was observed, not assumed.
 
 ### Live model checks
 
-LIVE_CHECKS_PLACEHOLDER
+Observed against the deployed Worker and the live Workers AI API on 2026-09-30:
+
+- **JSON mode with the Zod-generated schema works** with Llama 3.3: five of five analysis calls returned schema-valid output on the first attempt.
+- **Streaming chat works, with one quirk.** Each streamed event carries the token twice, as `choices[0].delta.content` and as legacy `response`. `workers-ai-provider` 3.3.1 emitted both, so answers came out doubled ("HelloHello from from..."). The mock used in tests did not reproduce it. `src/server/ai/dedupe-stream.ts` now drops the legacy field, and the fix was confirmed live.
+- **Streaming tool calls were not tested**, because the design does not use model-driven tools in chat (Cloudflare's own docs say this model ignores forced tool choice while streaming).
+- Workers AI streamed events also include a per-event `neurons` figure in `usage`.

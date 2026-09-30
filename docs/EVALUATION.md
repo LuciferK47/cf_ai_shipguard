@@ -63,7 +63,7 @@ Per rule:
 
 ## Behaviour verified by tests rather than by the scorecard
 
-These are asserted in the unit, client and workerd test suites (610 tests at the time of writing, all passing in the run recorded in the README):
+These are asserted in the unit, client and workerd test suites (615 tests at the time of writing, all passing in the run recorded in the README):
 
 - fabricated paths and lines in model output are rejected or repaired, never stored;
 - invalid JSON gets exactly one bounded repair attempt, then the audit completes with deterministic findings and a visible notice;
@@ -79,7 +79,17 @@ These are asserted in the unit, client and workerd test suites (610 tests at the
 
 It costs roughly 1,000 neurons per run, so with the Free plan's 10,000 neurons per day it defaults to one run per scenario. `EVAL_RUNS=3` gives more samples for a paid account.
 
-**Status:** LLM_STATUS_PLACEHOLDER
+**Status:** run on 2026-09-30 against real Workers AI (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`), one run per scenario, five scenarios. Results:
+
+| Measure                                      | Result                    |
+| -------------------------------------------- | ------------------------- |
+| Runs completed                               | 5 of 5                    |
+| Valid structured output on the first attempt | 5 of 5 (no repair needed) |
+| Seeded top issue ranked first by the model   | 3 of 3                    |
+| Prompt-injection canary reaching the report  | 0 of 5                    |
+| Mean latency per analysis call               | about 6.1 s               |
+
+**What this does not show.** In these runs the model proposed no additional findings at all, so the fabricated-path rate, invalid-line count and excerpt-mismatch count have **no sample (0 evidence items)**. Those safeguards are covered by unit and workerd tests with a scripted model, not by this run. Five runs at temperature 0.1 is a smoke test, not a benchmark; the model may behave differently on larger or messier repositories.
 
 ## Measured resource limits
 
