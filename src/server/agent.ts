@@ -83,8 +83,11 @@ const STATUSES: ReadonlySet<string> = new Set([
  */
 export class ShipGuardAgent extends AIChatAgent<Env, ShipGuardState> {
   maxPersistedMessages = MAX_PERSISTED_MESSAGES;
-  /** Resume a chat turn that was interrupted by an eviction. */
-  chatRecovery = true;
+  /**
+   * Resume a chat turn that an eviction interrupted. Answers are short and a
+   * retry re-runs the model (which spends neurons), so recovery is bounded.
+   */
+  chatRecovery = { maxAttempts: 3, noProgressTimeoutMs: 60_000 };
   initialState: ShipGuardState = { recent: [] };
 
   private cachedDb?: Db;

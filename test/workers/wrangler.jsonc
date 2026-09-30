@@ -1,0 +1,23 @@
+{
+  // Test-only copy of the production bindings. It has no `assets` block and no
+  // real `ai` binding: the tests replace AI with a mock worker (see vitest.config.ts)
+  // and the outbound GitHub calls with a fixture-backed fake.
+  "name": "cf-ai-shipguard-test",
+  "main": "../../src/server/index.ts",
+  "compatibility_date": "2026-06-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [{ "binding": "ANALYSIS_CACHE" }],
+  "durable_objects": {
+    "bindings": [{ "name": "ShipGuardAgent", "class_name": "ShipGuardAgent" }]
+  },
+  "exports": {
+    "ShipGuardAgent": { "type": "durable-object", "storage": "sqlite" }
+  },
+  "workflows": [
+    {
+      "name": "shipguard-audit",
+      "binding": "AUDIT_WORKFLOW",
+      "class_name": "AuditWorkflow"
+    }
+  ]
+}

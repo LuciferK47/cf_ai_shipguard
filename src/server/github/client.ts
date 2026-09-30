@@ -103,7 +103,9 @@ export function createGithubClient(
     try {
       return await doFetch(url, {
         headers,
-        redirect: "error",
+        // Workers do not support redirect: "error". "manual" hands back any 3xx
+        // response untouched, so a redirect is never followed to another host.
+        redirect: "manual",
         signal: AbortSignal.timeout(timeoutMs)
       });
     } catch (err) {
@@ -128,6 +130,12 @@ export function createGithubClient(
 
   function mapError(res: Response, what: string): GithubError {
     const status = res.status;
+    if (status >= 300 && status < 400) {
+      return new GithubError(
+        "NOT_FOUND",
+        "GitHub redirected this request, which usually means the repository was renamed or moved. Use its current URL."
+      );
+    }
     const remaining = res.headers.get("x-ratelimit-remaining");
     const reset = Number(res.headers.get("x-ratelimit-reset"));
     const retryAfter = res.headers.get("retry-after");

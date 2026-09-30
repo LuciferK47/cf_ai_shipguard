@@ -62,7 +62,7 @@ describe("github client: happy paths", () => {
     const repo = await createGithubClient({ fetch }).getRepo("o", "r");
     expect(repo.defaultBranch).toBe("main");
     expect(calls[0].url).toBe("https://api.github.com/repos/o/r");
-    expect(calls[0].redirect).toBe("error");
+    expect(calls[0].redirect).toBe("manual");
   });
 
   it("getCommitSha asks for the sha media type", async () => {
@@ -116,6 +116,24 @@ describe("github client: happy paths", () => {
 });
 
 describe("github client: error taxonomy", () => {
+  it.each([301, 302, 307, 308])(
+    "never follows a %i redirect and explains it",
+    async (status) => {
+      const { fetch, calls } = fakeFetch(
+        () =>
+          new Response(null, {
+            status,
+            headers: { location: "https://evil.example/steal" }
+          })
+      );
+      const e = await code(createGithubClient({ fetch }).getRepo("o", "r"));
+      expect(e.code).toBe("NOT_FOUND");
+      expect(e.message).toMatch(/renamed or moved/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].redirect).toBe("manual");
+    }
+  );
+
   it("maps 404 to NOT_FOUND and mentions private repositories", async () => {
     const { fetch } = fakeFetch(() => new Response("{}", { status: 404 }));
     const e = await code(createGithubClient({ fetch }).getRepo("o", "r"));

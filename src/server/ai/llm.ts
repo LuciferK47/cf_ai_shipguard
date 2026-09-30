@@ -1,4 +1,5 @@
 import { MODEL_ID } from "../limits";
+import { log } from "../log";
 
 // The only place that talks to a model. Everything else depends on the small
 // `LlmClient` interface, so tests and evals can supply a fake or a REST client.
@@ -131,19 +132,25 @@ export function createWorkersAiClient(
       };
       try {
         // The binding's static types do not describe JSON mode for every model.
-        const run = ai.run as unknown as (
-          model: string,
-          inputs: unknown,
-          options?: unknown
-        ) => Promise<RunResult>;
-        const result = await run.call(
-          ai,
+        // Called as a method (not detached) so it also works on an RPC stub.
+        const binding = ai as unknown as {
+          run(
+            model: string,
+            inputs: unknown,
+            options?: unknown
+          ): Promise<RunResult>;
+        };
+        const result = await binding.run(
           MODEL_ID,
           body,
           opts.gatewayId ? { gateway: { id: opts.gatewayId } } : undefined
         );
         return toResponse(result, started);
       } catch (err) {
+        // The classified error is deliberately generic; keep the cause in the logs.
+        log("ai.error", {
+          message: err instanceof Error ? err.message : String(err)
+        });
         throw classifyError(err);
       }
     }

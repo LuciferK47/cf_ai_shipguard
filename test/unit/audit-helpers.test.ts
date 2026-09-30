@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { analysisCacheKey, readCachedAnalysis, sha256Hex, writeCachedAnalysis, type KvLike } from "../../src/server/audit/cache";
+import {
+  analysisCacheKey,
+  readCachedAnalysis,
+  sha256Hex,
+  writeCachedAnalysis,
+  type KvLike
+} from "../../src/server/audit/cache";
 import { decodeFailure, encodeFailure } from "../../src/server/audit/errors";
 import { fetchFiles } from "../../src/server/audit/fetch";
 import { buildManifest } from "../../src/server/audit/manifest";
-import { derivePlan, deterministicSummary, mergeAndRank } from "../../src/server/audit/plan";
+import {
+  derivePlan,
+  deterministicSummary,
+  mergeAndRank
+} from "../../src/server/audit/plan";
 import { GithubError, type GithubClient } from "../../src/server/github/client";
 import { buildInventory } from "../../src/server/ingest/select";
 import { MAX_FILE_BYTES, PROMPT_VERSION } from "../../src/server/limits";
@@ -22,8 +32,19 @@ const pick = (path: string) => ({ path, reason: "test", score: 1 });
 
 describe("fetchFiles", () => {
   it("returns text and sizes for fetched files", async () => {
-    const c = client(async (_o, _r, _s, path) => ({ text: `body of ${path}`, bytes: 10, truncated: false }));
-    const { files, rateLimited } = await fetchFiles(c, "o", "r", SHA, [pick("a.ts"), pick("b.ts")], 1000);
+    const c = client(async (_o, _r, _s, path) => ({
+      text: `body of ${path}`,
+      bytes: 10,
+      truncated: false
+    }));
+    const { files, rateLimited } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("a.ts"), pick("b.ts")],
+      1000
+    );
     expect(rateLimited).toBeUndefined();
     expect(files.map((f) => [f.path, f.text, f.chars])).toEqual([
       ["a.ts", "body of a.ts", 12],
@@ -33,21 +54,45 @@ describe("fetchFiles", () => {
 
   it("records a failed file instead of throwing, so the step is not retried", async () => {
     const c = client(async (_o, _r, _s, path) => {
-      if (path === "bad.ts") throw new GithubError("NOT_FOUND", "The file was not found.");
+      if (path === "bad.ts")
+        throw new GithubError("NOT_FOUND", "The file was not found.");
       return { text: "ok", bytes: 2, truncated: false };
     });
-    const { files } = await fetchFiles(c, "o", "r", SHA, [pick("good.ts"), pick("bad.ts")], 1000);
+    const { files } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("good.ts"), pick("bad.ts")],
+      1000
+    );
     expect(files[0].text).toBe("ok");
-    expect(files[1]).toMatchObject({ path: "bad.ts", chars: 0, error: "The file was not found." });
+    expect(files[1]).toMatchObject({
+      path: "bad.ts",
+      chars: 0,
+      error: "The file was not found."
+    });
     expect(files[1].text).toBeUndefined();
   });
 
   it("records timeouts and unexpected errors per file", async () => {
     const c = client(async (_o, _r, _s, path) => {
-      if (path === "t.ts") throw new GithubError("GITHUB_UNAVAILABLE", "GitHub did not answer in time.", { retryable: true });
+      if (path === "t.ts")
+        throw new GithubError(
+          "GITHUB_UNAVAILABLE",
+          "GitHub did not answer in time.",
+          { retryable: true }
+        );
       throw new TypeError("boom");
     });
-    const { files } = await fetchFiles(c, "o", "r", SHA, [pick("t.ts"), pick("u.ts")], 1000);
+    const { files } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("t.ts"), pick("u.ts")],
+      1000
+    );
     expect(files[0].error).toBe("GitHub did not answer in time.");
     expect(files[1].error).toBe("unexpected error");
   });
@@ -56,7 +101,14 @@ describe("fetchFiles", () => {
     const c = client(async () => {
       throw new GithubError("RATE_LIMITED", "limit", { resetAt: 5 });
     });
-    const { files, rateLimited } = await fetchFiles(c, "o", "r", SHA, [pick("a.ts")], 1000);
+    const { files, rateLimited } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("a.ts")],
+      1000
+    );
     expect(rateLimited?.code).toBe("RATE_LIMITED");
     expect(files[0].error).toBe("GitHub rate limit reached");
   });
@@ -67,15 +119,37 @@ describe("fetchFiles", () => {
         ? { text: "ab\u0000cd", bytes: 5, truncated: false }
         : { text: "x".repeat(10), bytes: MAX_FILE_BYTES, truncated: true }
     );
-    const { files } = await fetchFiles(c, "o", "r", SHA, [pick("bin"), pick("big")], 1000);
+    const { files } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("bin"), pick("big")],
+      1000
+    );
     expect(files[0].error).toBe("binary file");
     expect(files[1].error).toMatch(/size limit/);
   });
 
   it("enforces the total size budget in priority order", async () => {
-    const c = client(async () => ({ text: "x".repeat(600), bytes: 600, truncated: false }));
-    const { files } = await fetchFiles(c, "o", "r", SHA, [pick("first"), pick("second"), pick("third")], 1000);
-    expect(files.map((f) => f.text !== undefined)).toEqual([true, false, false]);
+    const c = client(async () => ({
+      text: "x".repeat(600),
+      bytes: 600,
+      truncated: false
+    }));
+    const { files } = await fetchFiles(
+      c,
+      "o",
+      "r",
+      SHA,
+      [pick("first"), pick("second"), pick("third")],
+      1000
+    );
+    expect(files.map((f) => f.text !== undefined)).toEqual([
+      true,
+      false,
+      false
+    ]);
     expect(files[1].error).toBe("over the total size budget");
   });
 
@@ -90,31 +164,50 @@ describe("fetchFiles", () => {
   });
 
   it("handles no picks", async () => {
-    const { files } = await fetchFiles(client(async () => ({ text: "", bytes: 0, truncated: false })), "o", "r", SHA, [], 100);
+    const { files } = await fetchFiles(
+      client(async () => ({ text: "", bytes: 0, truncated: false })),
+      "o",
+      "r",
+      SHA,
+      [],
+      100
+    );
     expect(files).toEqual([]);
   });
 });
 
 describe("failure encoding", () => {
   it("round-trips a code and message", () => {
-    expect(decodeFailure(new Error(encodeFailure("NOT_FOUND", "The repository was not found.")))).toEqual({
+    expect(
+      decodeFailure(
+        new Error(encodeFailure("NOT_FOUND", "The repository was not found."))
+      )
+    ).toEqual({
       code: "NOT_FOUND",
       message: "The repository was not found."
     });
   });
 
   it("decodes GithubError directly", () => {
-    expect(decodeFailure(new GithubError("RATE_LIMITED", "slow down"))).toEqual({ code: "RATE_LIMITED", message: "slow down" });
+    expect(decodeFailure(new GithubError("RATE_LIMITED", "slow down"))).toEqual(
+      { code: "RATE_LIMITED", message: "slow down" }
+    );
   });
 
   it("never exposes unexpected error text, only a generic message", () => {
-    const d = decodeFailure(new Error("TypeError: Cannot read properties of undefined at /src/secret/path.ts:99"));
+    const d = decodeFailure(
+      new Error(
+        "TypeError: Cannot read properties of undefined at /src/secret/path.ts:99"
+      )
+    );
     expect(d.code).toBe("WORKFLOW_FAILED");
     expect(d.message).not.toContain("secret");
   });
 
   it("rejects an unknown code prefix", () => {
-    expect(decodeFailure(new Error("[MADE_UP] hi")).code).toBe("WORKFLOW_FAILED");
+    expect(decodeFailure(new Error("[MADE_UP] hi")).code).toBe(
+      "WORKFLOW_FAILED"
+    );
   });
 
   it.each([undefined, null, 42, {}, ""])("handles %j", (v) => {
@@ -122,7 +215,11 @@ describe("failure encoding", () => {
   });
 });
 
-const f = (id: string, severity: Finding["severity"], source: Finding["source"] = "rule"): Finding => ({
+const f = (
+  id: string,
+  severity: Finding["severity"],
+  source: Finding["source"] = "rule"
+): Finding => ({
   fingerprint: id,
   ruleId: id,
   source,
@@ -137,38 +234,71 @@ const f = (id: string, severity: Finding["severity"], source: Finding["source"] 
 
 describe("ranking and plan", () => {
   it("orders by severity, then by the model's priority, then original order", () => {
-    const out = mergeAndRank([f("a", "medium"), f("b", "high"), f("c", "high"), f("d", "low")], [f("e", "high", "ai")], [
-      { fingerprint: "c" },
-      { fingerprint: "e" }
-    ]);
+    const out = mergeAndRank(
+      [f("a", "medium"), f("b", "high"), f("c", "high"), f("d", "low")],
+      [f("e", "high", "ai")],
+      [{ fingerprint: "c" }, { fingerprint: "e" }]
+    );
     expect(out.map((x) => x.fingerprint)).toEqual(["c", "e", "b", "a", "d"]);
   });
 
   it("never lets priorities demote a critical finding", () => {
-    const out = mergeAndRank([f("low1", "low"), f("crit", "critical")], [], [{ fingerprint: "low1" }]);
+    const out = mergeAndRank(
+      [f("low1", "low"), f("crit", "critical")],
+      [],
+      [{ fingerprint: "low1" }]
+    );
     expect(out[0].fingerprint).toBe("crit");
   });
 
   it("removes duplicate fingerprints", () => {
-    expect(mergeAndRank([f("a", "high")], [f("a", "high", "ai")], [])).toHaveLength(1);
+    expect(
+      mergeAndRank([f("a", "high")], [f("a", "high", "ai")], [])
+    ).toHaveLength(1);
   });
 
   it("derives a plan from the most severe findings and skips info", () => {
     const plan = derivePlan([f("a", "high"), f("b", "info"), f("c", "medium")]);
     expect(plan).toEqual(["Title a: Do a", "Title c: Do c"]);
-    expect(derivePlan(Array.from({ length: 20 }, (_, i) => f(`x${i}`, "high")))).toHaveLength(5);
+    expect(
+      derivePlan(Array.from({ length: 20 }, (_, i) => f(`x${i}`, "high")))
+    ).toHaveLength(5);
     expect(derivePlan([])).toEqual([]);
   });
 
   it("writes an honest deterministic summary", () => {
-    expect(deterministicSummary([], { critical: 0, high: 0, medium: 0, low: 0, info: 0 })).toContain("No issues were found");
-    expect(deterministicSummary([f("a", "high")], { critical: 0, high: 1, medium: 0, low: 0, info: 0 })).toContain("deterministic rules");
+    expect(
+      deterministicSummary([], {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        info: 0
+      })
+    ).toContain("No issues were found");
+    expect(
+      deterministicSummary([f("a", "high")], {
+        critical: 0,
+        high: 1,
+        medium: 0,
+        low: 0,
+        info: 0
+      })
+    ).toContain("deterministic rules");
   });
 });
 
 describe("manifest", () => {
   const inv = buildInventory(
-    ["wrangler.jsonc", "package.json", "src/index.ts", "src/other.ts", "src/more.ts", "package-lock.json", ".dev.vars"].map((path) => ({ path, type: "blob" as const, size: 10 })),
+    [
+      "wrangler.jsonc",
+      "package.json",
+      "src/index.ts",
+      "src/other.ts",
+      "src/more.ts",
+      "package-lock.json",
+      ".dev.vars"
+    ].map((path) => ({ path, type: "blob" as const, size: 10 })),
     "",
     false
   );
@@ -182,11 +312,26 @@ describe("manifest", () => {
       fetched: [
         { path: "wrangler.jsonc", reason: "config", text: "{}", chars: 2 },
         { path: "src/index.ts", reason: "entry", text: "x", chars: 1 },
-        { path: "src/other.ts", reason: "source", chars: 0, error: "binary file" }
+        {
+          path: "src/other.ts",
+          reason: "source",
+          chars: 0,
+          error: "binary file"
+        }
       ],
-      shown: { "wrangler.jsonc": { mode: "full", lineStart: 1, lineEnd: 1 }, "src/index.ts": { mode: "partial", lineStart: 1, lineEnd: 1 } }
+      shown: {
+        "wrangler.jsonc": { mode: "full", lineStart: 1, lineEnd: 1 },
+        "src/index.ts": { mode: "partial", lineStart: 1, lineEnd: 1 }
+      }
     });
-    expect(m).toMatchObject({ repo: "o/r", ref: "main", filesDiscovered: 7, filesSelected: 3, filesSkipped: 4, neverFetched: [".dev.vars"] });
+    expect(m).toMatchObject({
+      repo: "o/r",
+      ref: "main",
+      filesDiscovered: 7,
+      filesSelected: 3,
+      filesSkipped: 4,
+      neverFetched: [".dev.vars"]
+    });
     expect(m.selected.map((s) => [s.path, s.fetched, s.shownToAi])).toEqual([
       ["wrangler.jsonc", true, "full"],
       ["src/index.ts", true, "partial"],
@@ -199,8 +344,19 @@ describe("manifest", () => {
   });
 
   it("names the sub-directory in the repo label", () => {
-    const sub = buildInventory([{ path: "apps/api/wrangler.jsonc", type: "blob", size: 1 }], "", false);
-    const m = buildManifest({ target: { owner: "o", repo: "r", subpath: "" }, ref: "main", sha: SHA, inventory: sub, fetched: [], shown: {} });
+    const sub = buildInventory(
+      [{ path: "apps/api/wrangler.jsonc", type: "blob", size: 1 }],
+      "",
+      false
+    );
+    const m = buildManifest({
+      target: { owner: "o", repo: "r", subpath: "" },
+      ref: "main",
+      sha: SHA,
+      inventory: sub,
+      fetched: [],
+      shown: {}
+    });
     expect(m.repo).toBe("o/r/apps/api");
   });
 });
@@ -224,7 +380,9 @@ describe("analysis cache", () => {
   }
 
   it("hashes with SHA-256", async () => {
-    expect(await sha256Hex("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    expect(await sha256Hex("abc")).toBe(
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
   });
 
   it("changes the key when any input changes", async () => {
@@ -262,8 +420,12 @@ describe("analysis cache", () => {
       }
     };
     expect(await readCachedAnalysis(broken, "k")).toBeUndefined();
-    await expect(writeCachedAnalysis(broken, "k", analysis)).resolves.toBeUndefined();
+    await expect(
+      writeCachedAnalysis(broken, "k", analysis)
+    ).resolves.toBeUndefined();
     expect(await readCachedAnalysis(undefined, "k")).toBeUndefined();
-    await expect(writeCachedAnalysis(undefined, "k", analysis)).resolves.toBeUndefined();
+    await expect(
+      writeCachedAnalysis(undefined, "k", analysis)
+    ).resolves.toBeUndefined();
   });
 });
