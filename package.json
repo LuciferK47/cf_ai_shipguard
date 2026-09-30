@@ -1,0 +1,65 @@
+{
+  "name": "cf_ai_shipguard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ShipGuard: an AI deployment preflight and debugging agent for Cloudflare applications.",
+  "keywords": [
+    "cloudflare",
+    "agents",
+    "workflows",
+    "workers-ai",
+    "durable-objects"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "deploy": "vite build && wrangler deploy",
+    "types": "wrangler types env.d.ts",
+    "format": "oxfmt --write .",
+    "lint": "oxlint src/ test/ evals/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "eval": "node --experimental-strip-types evals/run-deterministic.ts",
+    "eval:llm": "node --experimental-strip-types evals/run-llm.ts",
+    "check": "oxfmt --check . && npm run lint && npm run typecheck"
+  },
+  "dependencies": {
+    "@cloudflare/ai-chat": "^0.9.3",
+    "agents": "^0.17.4",
+    "ai": "^6.0.197",
+    "jsonc-parser": "^3.3.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "smol-toml": "^1.9.0",
+    "streamdown": "^2.5.0",
+    "workers-ai-provider": "^3.2.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@cloudflare/vite-plugin": "^1.46.0",
+    "@cloudflare/vitest-plugin": "^1.3.3",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxfmt": "^0.56.0",
+    "oxlint": "^1.71.0",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.113.0"
+  },
+  "allowScripts": {
+    "core-js-pure@3.49.0": true,
+    "esbuild@0.28.1": true,
+    "workerd@1.20260721.1": true,
+    "sharp@0.34.5": true,
+    "fsevents@2.3.3": true
+  }
+}
