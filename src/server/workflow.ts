@@ -477,7 +477,9 @@ export class AuditWorkflow extends AgentWorkflow<
       log("audit.failed", {
         auditId,
         ms: Date.now() - began,
-        code: failure.code
+        code: failure.code,
+        cause:
+          err instanceof Error ? `${err.name}: ${err.message}` : String(err)
       });
       await step.do("record-failure", ONCE, async () => {
         await this.agent.reportFailure(auditId, failure);

@@ -31,7 +31,9 @@ export function decodeFailure(err: unknown): AuditError {
     return { code: err.code, message: err.message };
   const raw =
     err instanceof Error ? err.message : typeof err === "string" ? err : "";
-  const m = /^\[([A-Z_]+)\]\s+([\s\S]{1,400})$/.exec(raw.trim());
+  // The workflow engine may prefix the message (for example with the error
+  // class name), so the marker is searched for rather than required at the start.
+  const m = /\[([A-Z_]{4,30})\]\s+([\s\S]{1,400})/.exec(raw);
   if (m && KNOWN.has(m[1]))
     return { code: m[1] as ErrorCode, message: m[2].trim() };
   return { code: "WORKFLOW_FAILED", message: GENERIC };

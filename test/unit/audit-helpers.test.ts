@@ -204,6 +204,17 @@ describe("failure encoding", () => {
     expect(d.message).not.toContain("secret");
   });
 
+  it.each([
+    "NonRetryableError: [NOT_FOUND] The repository was not found.",
+    "Error: NonRetryableError: [NOT_FOUND] The repository was not found.",
+    "  [NOT_FOUND] The repository was not found."
+  ])("finds the marker when the engine prefixes the message: %s", (raw) => {
+    expect(decodeFailure(new Error(raw))).toEqual({
+      code: "NOT_FOUND",
+      message: "The repository was not found."
+    });
+  });
+
   it("rejects an unknown code prefix", () => {
     expect(decodeFailure(new Error("[MADE_UP] hi")).code).toBe(
       "WORKFLOW_FAILED"

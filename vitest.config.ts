@@ -43,7 +43,9 @@ export default defineConfig({
         test: {
           name: "workers",
           include: ["test/workers/**/*.test.ts"],
-          testTimeout: 30_000
+          testTimeout: 30_000,
+          // The fake GitHub and the mock AI are shared, so files must not overlap.
+          fileParallelism: false
         }
       }
     ]

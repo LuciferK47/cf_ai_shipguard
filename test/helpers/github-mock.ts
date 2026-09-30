@@ -102,18 +102,19 @@ export function createGithubMock() {
 
   const handler = async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
-    calls.push({
-      method: request.method,
-      url: request.url,
-      authorization: request.headers.has("authorization")
-    });
 
+    // The mock's own control endpoints are not part of the log they report.
     if (url.hostname === "mock.local" && url.pathname === "/__calls")
       return json(calls);
     if (url.hostname === "mock.local" && url.pathname === "/__reset") {
       calls.length = 0;
       return json({ ok: true });
     }
+    calls.push({
+      method: request.method,
+      url: request.url,
+      authorization: request.headers.has("authorization")
+    });
 
     if (url.hostname === "api.github.com") {
       const m =
